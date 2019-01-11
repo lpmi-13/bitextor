@@ -89,9 +89,11 @@ else:
 #Working paths
 permanent=config["permanentDir"]
 transient=config["transientDir"]
+localtransient=config["localTransientDir"]
 
 systemCheck("mkdir -p " + permanent)
 systemCheck("mkdir -p " + transient)
+systemCheck("mkdir -p " + localtransient)
 
 #Dictionary
 if "dic" in config:
@@ -138,8 +140,8 @@ if "LANG2SentenceSplitter" in config:
 else:
   SENTTOK2=None
 
-tokeniserCheck(WORDTOK1)
-tokeniserCheck(WORDTOK2)
+#tokeniserCheck(WORDTOK1)
+#tokeniserCheck(WORDTOK2)
 
 ############ OPTIONS FOR THE NATIVE BITEXTOR CRAWLER ############
 
@@ -652,65 +654,111 @@ rule concat_subdomains:
         else:
             cmd = 'xzcat -T 0 {input} -f | xz -c -T 0 > {output}'
         shell(cmd)
-
-
-checkpoint warc2tt:
-    input:
-        '{target}/concat.warc.xz'
-    output:
-        directory("{target}/raw-html/")
-    priority: 8
-    shell:
-        'mkdir -p {wildcards.target}/raw-html; '
-        'xzcat -T 0 {input} -f | {BITEXTOR}/bitextor-warc2html.py --output-dir {output}'
-
-rule tt2ttmime:
-    input:
-        file='{target}/raw-html/{name}.html',
-        metadata='{target}/raw-html/{name}.metadata'
-    output:
-        normhtml='{target}/norm-html/{name}',
-        deboiled='{target}/deboiled/{name}.html',
-        text='{target}/text/{name}',
-        lett='{target}/lett/{name}'
-    priority: 7
-    shell:
-        'mkdir -p {wildcards.target}/norm-html; '
-        'mkdir -p {wildcards.target}/deboiled; '
-        'mkdir -p {wildcards.target}/text; '
-        'mkdir -p {wildcards.target}/lett; '
-        '{BITEXTOR}/bitextor-process-html.py --input {input.file} --metadata {input.metadata} --normhtml {output.normhtml} --deboiled {output.deboiled} --text {output.text} --info {output.lett}'
-
-def independenthtml(wildcards):
-    checkpoint_output = checkpoints.warc2tt.get(**wildcards).output[0]
-<<<<<<< Updated upstream
-    filenames=[os.path.basename(f).split(".")[0] for f in glob.glob(wildcards.target+"/raw-html/*.html")]
-    return expand("{target}/lett/{num}", target=wildcards.target, num=filenames)
-=======
-    #content=lzma.open(wildcards.target+"/concat.warc.xz", 'rb').read()
-    #num=len([m.start() for m in re.finditer(b'WARC-Record-ID:', content)])
-    num = 0
-    for record in warc.WARCFile(fileobj = lzma.open(wildcards.target+"/concat.warc.xz", 'rb')):
-      text = record.payload.read()
-      if text: num += 1
-    e = expand("{target}/lett/{num}", target=wildcards.target, num=[str(i) for i in list(range(0,num))])
-    return e
->>>>>>> Stashed changes
-
-rule boiler2ett:
-    input:
+#
+#
+#checkpoint warc2tt:
+#    input:
+#        '{target}/concat.warc.xz'
+#    output:
+#        directory("{target}/raw-html/")
+#    priority: 8
+#    shell:
+#        'mkdir -p {wildcards.target}/raw-html; '
+#        'xzcat -T 0 {input} -f | {BITEXTOR}/bitextor-warc2html.py --output-dir {output}'
+#
+#rule tt2ttmime:
+#    input:
+#        file='{target}/raw-html/{name}.html',
+#        metadata='{target}/raw-html/{name}.metadata'
+#    output:
+#        normhtml='{target}/norm-html/{name}',
+#        deboiled='{target}/deboiled/{name}.html',
+#        text='{target}/text/{name}',
+#        lett='{target}/lett/{name}'
+#    priority: 7
+#    shell:
+#        'mkdir -p {wildcards.target}/norm-html; '
+#        'mkdir -p {wildcards.target}/deboiled; '
+#        'mkdir -p {wildcards.target}/text; '
+#        'mkdir -p {wildcards.target}/lett; '
+#        '{BITEXTOR}/bitextor-process-html.py --input {input.file} --metadata {input.metadata} --normhtml {output.normhtml} --deboiled {output.deboiled} --text {output.text} --info {output.lett} {ALCAZAR}'
+#
+#def independenthtml(wildcards):
+#    checkpoint_output = checkpoints.warc2tt.get(**wildcards).output[0]
+#    filenames=[os.path.basename(f).split(".")[0] for f in glob.glob(wildcards.target+"/raw-html/*.html")]
+#    return expand("{target}/lett/{num}", target=wildcards.target, num=filenames)
+#
+#rule boiler2ett:
+#    input:
 #        aggregate=independenthtml
-         aggregate=independenthtml
-    output:
-        '{target}/lett.xz'
-    priority: 4
-    shell:
-        'if [ "{boilerpipeCleaning}" == "True" ]; then '
-        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/deboiled --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
-        'else '
-        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/raw-html --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
-        'fi '
+#    output:
+#        '{target}/lett.xz'
+#    priority: 4
+#    shell:
+#        'if [ "{boilerpipeCleaning}" == "True" ]; then '
+#        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/deboiled --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#        'else '
+#        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/raw-html --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#        'fi '
+#
 
+rule warc2lett:
+  input:
+    '{target}/concat.warc.xz'
+
+  output:
+    '{target}/lett.xz'
+
+  shell:
+    'xzcat -T 0 {input} -f | {BITEXTOR}/bitextor-warc2lett.py -l {LANG1},{LANG2} | xz -T 0 > {output};'
+
+#    'mkdir -p {localtransient}/{wildcards.domain}/raw-html;' 
+#    'xzcat -T 0 {input} -f | {BITEXTOR}/bitextor-warc2html.py --output-dir {localtransient}/{wildcards.domain}/raw-html;'
+#    'mkdir -p {localtransient}/{wildcards.domain}/norm-html; mkdir -p {localtransient}/{wildcards.domain}/deboiled; mkdir -p {localtransient}/{wildcards.domain}/text; mkdir -p {localtransient}/{wildcards.domain}/lett;'
+#    'for file in {localtransient}/{wildcards.domain}/raw-html/*.html; do basefile=`basename $file .html`;  {BITEXTOR}/bitextor-process-html.py --input $file --metadata {localtransient}/{wildcards.domain}/raw-html/$basefile.metadata --normhtml {localtransient}/{wildcards.domain}/norm-html/$basefile.html --deboiled {localtransient}/{wildcards.domain}/deboiled/$basefile.html --text {localtransient}/{wildcards.domain}/text/$basefile  --info {localtransient}/{wildcards.domain}/lett/$basefile {ALCAZAR}; done;'
+#    'if [ "{boilerpipeCleaning}" == "True" ]; then '
+#    '  cat {localtransient}/{wildcards.domain}/lett/* | {BITEXTOR}/bitextor-filter.py --html-dir  {localtransient}/{wildcards.domain}/raw-html --text-dir {localtransient}/{wildcards.domain}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#    'else '
+#    '  cat  {localtransient}/{wildcards.domain}/lett/*| {BITEXTOR}/bitextor-filter.py --html-dir   {localtransient}/{wildcards.domain}/raw-html --text-dir {localtransient}/{wildcards.domain}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#    'fi; '
+#    'rm -rf  {localtransient}/{wildcards.domain}'
+#
+#rule tt2ttmime:
+#    input:
+#        file='{target}/raw-html/{name}.html',
+#        metadata='{target}/raw-html/{name}.metadata'
+#    output:
+#        normhtml='{target}/norm-html/{name}',
+#        deboiled='{target}/deboiled/{name}.html',
+#        text='{target}/text/{name}',
+#        lett='{target}/lett/{name}'
+#    priority: 7
+#    shell:
+#        'mkdir -p {wildcards.target}/norm-html; '
+#        'mkdir -p {wildcards.target}/deboiled; '
+#        'mkdir -p {wildcards.target}/text; '
+#        'mkdir -p {wildcards.target}/lett; '
+#        '{BITEXTOR}/bitextor-process-html.py --input {input.file} --metadata {input.metadata} --normhtml {output.normhtml} --deboiled {output.deboiled} --text {output.text} --info {output.lett}'
+#
+#def independenthtml(wildcards):
+#    checkpoint_output = checkpoints.warc2tt.get(**wildcards).output[0]
+#    filenames=[os.path.basename(f).split(".")[0] for f in glob.glob(wildcards.target+"/raw-html/*.html")]
+#    return expand("{target}/lett/{num}", target=wildcards.target, num=filenames)
+#
+#rule boiler2ett:
+#    input:
+##        aggregate=independenthtml
+#         aggregate=independenthtml
+#    output:
+#        '{target}/lett.xz'
+#    priority: 4
+#    shell:
+#        'if [ "{boilerpipeCleaning}" == "True" ]; then '
+#        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/deboiled --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#        'else '
+#        '  cat {input.aggregate} | {BITEXTOR}/bitextor-filter.py --html-dir {wildcards.target}/raw-html --text-dir {wildcards.target}/text -l {LANG1},{LANG2} | xz -T 0 > {output}; '
+#        'fi '
+#
 #rule xtt2alcazar:
 #  input:
 #    '{target}/xtt.xz'

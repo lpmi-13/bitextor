@@ -9,6 +9,8 @@ import cchardet
 #############################################################################
 def convert_encoding(data, new_coding = 'UTF-8'):
   encoding = cchardet.detect(data)['encoding']
+  if not encoding:
+    return None
   #sys.stderr.write("convert " + encoding + " to " + new_coding + "\n")
 
   if new_coding.upper() != encoding.upper():
@@ -37,12 +39,22 @@ for record in f:
     #sys.stderr.write("text" + str(len(text)) + "\n")
 
     if len(text) > 0:
-        text = convert_encoding(text)
+        try:
+          text = convert_encoding(text)
+          if not text: 
+            sys.stderr.write("Failed to detect encoding: " + record.url + "\n")
+            sys.stderr.flush()
+            continue
 
         # write file
-        file = open("{outDir}/{name}.html".format(outDir=args.outDir, name=lineNum), "w")
-        file.write(text.decode())
-        file.close()
+          file = open("{outDir}/{name}.html".format(outDir=args.outDir, name=lineNum), "wb")
+          file.write(text)
+          file.close()
+        except UnicodeDecodeError:
+          sys.stderr.write("Unicode error: " + record.url + "\n")
+          sys.stderr.flush()
+          continue
+
 
         file = open("{outDir}/{name}.metadata".format(outDir=args.outDir, name=lineNum), "w")
         file.write(record.url + "\t" + record.date)

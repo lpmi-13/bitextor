@@ -68,8 +68,11 @@ def getDocumentText(document):
   return docplaintext
 
 def guess_lang_from_data2(data):
-  reliable, text_bytes, detected_languages = cld2.detect(
-    data, isPlainText=False)
+  try:
+    reliable, text_bytes, detected_languages = cld2.detect(
+      data, isPlainText=False)
+  except cld2.error:
+    return "UNK"
   #print("detected_languages", detected_languages)
   return detected_languages[0][1]
 
