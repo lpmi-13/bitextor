@@ -14,6 +14,7 @@ import warc
 
 from boilerpipe.extract import Extractor
 from lxml.html.clean import Cleaner
+from lxml.etree import ParserError
 from lxml import etree
 import pycld2 as cld2
 
@@ -120,6 +121,12 @@ for record in f:
       sys.stderr.write("Unicode error: " + record.url + "\n")
       sys.stderr.flush()
       continue
+ 
+    # lang id
+    lang = guess_lang_from_data2(html)
+    if not lang in langs:
+      continue
+    
         
     encoded_html = html.encode("utf8")
 
@@ -142,7 +149,11 @@ for record in f:
 
     # normalize html
     cleaner=Cleaner(style=True, links=True, add_nofollow=True,page_structure=False, safe_attrs_only=False)
-    cleanhtml = cleaner.clean_html(re.sub(r'encoding *= *"[^"]+"', '', html, flags=re.IGNORECASE))
+    try:
+      cleanhtml = cleaner.clean_html(re.sub(r'encoding *= *"[^"]+"', '', html, flags=re.IGNORECASE))
+    except ParserError:
+      sys.stderr.write("lxml parse error: " + record.url + "\n")
+      continue
     document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
     tree = etree.tostring(document)
     cleantree = tree.decode("utf8")
@@ -157,12 +168,6 @@ for record in f:
     mimeEncode = m.buffer(encoded_html).split(" ")
     mimeEncode[0] = mimeEncode[0][:-1]
 
- 
-    # lang id
-    lang = guess_lang_from_data2(html)
-    if not lang in langs:
-      continue
-    
     # Text
     text = alcazar.bodytext.parse_article(cleantree)
     if text.body_text:
