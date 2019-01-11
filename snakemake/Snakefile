@@ -82,9 +82,9 @@ else:
   MAXLINES=-1
 
 if "alcazar" in config and config["alcazar"]:
-  ALCAZAR = "--alcazar"
+  TEXTEXTRACT="alcazar"
 else:
-  ALCAZAR = ""
+  TEXTEXTRACT="tika" # NB, tika not actually used, but name lives on
 
 #Working paths
 permanent=config["permanentDir"]
@@ -138,8 +138,8 @@ if "LANG2SentenceSplitter" in config:
 else:
   SENTTOK2=None
 
-#tokeniserCheck(WORDTOK1)
-#tokeniserCheck(WORDTOK2)
+tokeniserCheck(WORDTOK1)
+tokeniserCheck(WORDTOK2)
 
 ############ OPTIONS FOR THE NATIVE BITEXTOR CRAWLER ############
 
@@ -679,7 +679,7 @@ rule tt2ttmime:
         'mkdir -p {wildcards.target}/deboiled; '
         'mkdir -p {wildcards.target}/text; '
         'mkdir -p {wildcards.target}/lett; '
-        '{BITEXTOR}/bitextor-process-html.py --input {input.file} --metadata {input.metadata} --normhtml {output.normhtml} --deboiled {output.deboiled} --text {output.text} --info {output.lett} {ALCAZAR}'
+        '{BITEXTOR}/bitextor-process-html.py --input {input.file} --metadata {input.metadata} --normhtml {output.normhtml} --deboiled {output.deboiled} --text {output.text} --info {output.lett}'
 
 def independenthtml(wildcards):
     checkpoint_output = checkpoints.warc2tt.get(**wildcards).output[0]
