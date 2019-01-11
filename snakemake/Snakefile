@@ -5,6 +5,7 @@ import sys
 import glob
 import gzip
 import lzma
+import warc
 import tldextract
 import os.path
 from tld import get_tld
@@ -682,12 +683,24 @@ rule tt2ttmime:
 
 def independenthtml(wildcards):
     checkpoint_output = checkpoints.warc2tt.get(**wildcards).output[0]
+<<<<<<< Updated upstream
     filenames=[os.path.basename(f).split(".")[0] for f in glob.glob(wildcards.target+"/raw-html/*.html")]
     return expand("{target}/lett/{num}", target=wildcards.target, num=filenames)
+=======
+    #content=lzma.open(wildcards.target+"/concat.warc.xz", 'rb').read()
+    #num=len([m.start() for m in re.finditer(b'WARC-Record-ID:', content)])
+    num = 0
+    for record in warc.WARCFile(fileobj = lzma.open(wildcards.target+"/concat.warc.xz", 'rb')):
+      text = record.payload.read()
+      if text: num += 1
+    e = expand("{target}/lett/{num}", target=wildcards.target, num=[str(i) for i in list(range(0,num))])
+    return e
+>>>>>>> Stashed changes
 
 rule boiler2ett:
     input:
-        aggregate=independenthtml
+#        aggregate=independenthtml
+         aggregate=independenthtml
     output:
         '{target}/lett.xz'
     priority: 4
