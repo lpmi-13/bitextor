@@ -106,10 +106,12 @@ for record in f:
         #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
         c = hashlib.md5()
         c.update(deboiled.encode())
-        print("c", c.hexdigest())
+
+        hash = c.hexdigest()
+        #print("c", hash)
 
         #checking for duplicate content (duplicates are discarded)
-        if c.hexdigest() in seen_md5:
+        if hash in seen_md5:
           logging.info("Repeated file:\t"+url+"\tfirst occurrence\t"+seen_md5[c.hexdigest()])
           pass
         else:
@@ -151,5 +153,14 @@ for record in f:
             b64text=base64.b64encode(html.unescape(plaintext).encode())
             #plainTextFile.write(b64text+b"\n")
             #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
+
+            sql = "INSERT INTO document(lang, md5) VALUES (%s, %s)"
+            print("sql", sql)
+            val = (lang, hash)
+            print("val", val)
+            mycursor.execute(sql, val)
+            mydb.commit()
+
+            print(mycursor.rowcount, "record inserted.")
 
 print("Finished")
