@@ -17,13 +17,13 @@ CREATE TABLE IF NOT EXISTS document
     #norm_html VARCHAR(255),
     #text VARCHAR(255),
     lang CHAR(2),
-    md5 VARCHAR(32)
+    md5 VARCHAR(32) UNIQUE KEY
 );
 
 CREATE TABLE IF NOT EXISTS url
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    url VARCHAR(255),
+    val VARCHAR(255),
     document_id INT REFERENCES document(id)
 );
 

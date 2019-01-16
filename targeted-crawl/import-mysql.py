@@ -155,12 +155,19 @@ for record in f:
             #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
 
             sql = "INSERT INTO document(lang, md5) VALUES (%s, %s)"
-            print("sql", sql)
             val = (lang, hash)
-            print("val", val)
+            #print("val", val)
             mycursor.execute(sql, val)
             mydb.commit()
+            docId = mycursor.lastrowid
+            print("doc inserted.", mycursor.rowcount, docId)
 
-            print(mycursor.rowcount, "record inserted.")
+            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+            val = (url, int(docId))
+            print("val", val, sql)
+            mycursor.execute(sql, val)
+            mydb.commit()
+            print("doc inserted.", mycursor.rowcount)
+
 
 print("Finished")
