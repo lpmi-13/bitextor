@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS document
 CREATE TABLE IF NOT EXISTS url
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    val VARCHAR(255),
+    val VARCHAR(255) UNIQUE KEY,
     document_id INT REFERENCES document(id)
 );
 

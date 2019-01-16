@@ -117,8 +117,13 @@ for record in f:
         print("res", res, hash, url)
 
         #checking for duplicate content (duplicates are discarded)
-        if hash in seen_md5:
-          logging.info("Repeated file:\t"+url+"\tfirst occurrence\t"+seen_md5[c.hexdigest()])
+        if res is not None:
+            docId = res[0]
+            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+            val = (url, int(docId))
+            mycursor.execute(sql, val)
+            mydb.commit()
+
         else:
           #If enabled get text with Alcazar library
           if options.alcazar:
