@@ -13,9 +13,6 @@ DROP TABLE IF EXISTS url;
 CREATE TABLE IF NOT EXISTS document
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    #html VARCHAR(255),
-    #norm_html VARCHAR(255),
-    #text VARCHAR(255),
     lang CHAR(2),
     md5 VARCHAR(32) UNIQUE KEY
 );
