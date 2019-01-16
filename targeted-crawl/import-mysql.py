@@ -110,10 +110,15 @@ for record in f:
         hash = c.hexdigest()
         #print("c", hash)
 
+        sql = "SELECT id FROM document WHERE md5 = %s"
+        val = (hash,)
+        mycursor.execute(sql, val)
+        res = mycursor.fetchone()
+        print("res", res, hash, url)
+
         #checking for duplicate content (duplicates are discarded)
         if hash in seen_md5:
           logging.info("Repeated file:\t"+url+"\tfirst occurrence\t"+seen_md5[c.hexdigest()])
-          pass
         else:
           #If enabled get text with Alcazar library
           if options.alcazar:
@@ -156,18 +161,16 @@ for record in f:
 
             sql = "INSERT INTO document(lang, md5) VALUES (%s, %s)"
             val = (lang, hash)
-            #print("val", val)
+            #print("val", type(val))
             mycursor.execute(sql, val)
             mydb.commit()
             docId = mycursor.lastrowid
-            print("doc inserted.", mycursor.rowcount, docId)
 
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
             val = (url, int(docId))
-            print("val", val, sql)
             mycursor.execute(sql, val)
             mydb.commit()
-            print("doc inserted.", mycursor.rowcount)
+
 
 
 print("Finished")
