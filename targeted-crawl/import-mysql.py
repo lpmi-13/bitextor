@@ -14,6 +14,7 @@ import hashlib
 import magic
 import base64
 import html
+import lzma
 import pycld2 as cld2
 from lxml.html.clean import Cleaner
 from lxml import etree
@@ -47,6 +48,7 @@ oparser.add_argument("--boilerpipe", action="store_true", default=False, help="U
 oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
 oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', default=None)
 oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', default=None)
+oparser.add_argument('--out-dir', dest='outDir', help='Output directory')
 options = oparser.parse_args()
 
 languages=[]
@@ -75,17 +77,17 @@ magic.Magic(mime=True)
 
 for record in f:
     #We convert into UTF8 first of all
-    orig_encoding,text = convert_encoding(record.payload.read())
+    orig_encoding,html_text = convert_encoding(record.payload.read())
     url=record.url
 
     if orig_encoding == None:
       logging.info("Encoding of document " + url + " could not be identified")
 
-    if len(text) > 0:
+    if len(html_text) > 0:
       # HTML is then normalized
       cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
 
-      cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', text, flags=re.IGNORECASE))
+      cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', html_text, flags=re.IGNORECASE))
       document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
       tree = etree.tostring(document)
       cleantree = tree.decode("utf8").replace("&#160;", " ")
@@ -146,14 +148,15 @@ for record in f:
 
           if len(plaintext) > 0:
             #Guessing MIME of the file (checked on original content)
-            mime=magic.from_buffer(text, mime=True)
+            mime=magic.from_buffer(html_text, mime=True)
             #mimeFile.write(mime.encode()+b"\n")
 
             #urlFile.write(url.encode()+b"\n")
             #langFile.write(lang.encode()+b"\n")
             #encodingFile.write(orig_encoding.encode()+b"\n")
 
-            b64norm=base64.b64encode(cleantree.encode())
+            norm_html = cleantree.encode()
+            b64norm=base64.b64encode(norm_html)
             #normHtmlFile.write(b64norm+b"\n")
 
             if options.boilerpipe:
@@ -176,6 +179,14 @@ for record in f:
             mycursor.execute(sql, val)
             mydb.commit()
 
+            filePrefix = options.outDir + "/" + str(docId)
+
+            with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
+              htmlFile.write(html_text)
+            with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
+              normHtmlFile.write(norm_html.decode("utf-8"))
+            with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
+              textFile.write(plaintext)
 
 
 print("Finished")
