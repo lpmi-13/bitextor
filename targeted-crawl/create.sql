@@ -9,6 +9,8 @@ mysql -u paracrawl_user -pparacrawl_password -Dparacrawl
 
 DROP TABLE IF EXISTS document;
 DROP TABLE IF EXISTS url;
+DROP TABLE IF EXISTS link;
+DROP TABLE IF EXISTS document_align;
 
 CREATE TABLE IF NOT EXISTS document
 (
@@ -31,6 +33,7 @@ CREATE TABLE IF NOT EXISTS link
     text VARCHAR(255),
     hover VARCHAR(255),
     image_url VARCHAR(255),
+    document_id INT REFERENCES document(id),
     url_id INT REFERENCES url(id)
 );
 

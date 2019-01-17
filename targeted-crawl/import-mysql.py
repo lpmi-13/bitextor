@@ -183,8 +183,31 @@ for record in f:
             #print(html_text)
             soup = BeautifulSoup(html_text)
             for link in soup.findAll('a'):
-              print("link", link.get('href'))
+                url = link.get('href')
+                print("link", url)
 
+                # does url already exist?
+                sql = "SELECT id FROM url WHERE val = %s"
+                val = (url, )
+                mycursor.execute(sql, val)
+                res = mycursor.fetchone()
+                print("res", res, hash, url)
+
+                if (res is not None):
+                    urlId = res[0]
+                else:
+                    sql = "INSERT INTO url(val) VALUES(%s)"
+                    val = (url, )
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                    urlId = mycursor.lastrowid
+
+                print("urlId", urlId)
+
+                sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
+                val =("text here", "hover here", None, int(docId), int(urlId))
+                mycursor.execute(sql, val)
+                mydb.commit()
 
             # write files
             filePrefix = options.outDir + "/" + str(docId)
