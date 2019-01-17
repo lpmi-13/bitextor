@@ -121,7 +121,7 @@ for record in f:
         #checking for duplicate content (duplicates are discarded)
         if res is not None:
             docId = res[0]
-            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+            sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
@@ -179,6 +179,14 @@ for record in f:
             mycursor.execute(sql, val)
             mydb.commit()
 
+            # links
+            #print(html_text)
+            soup = BeautifulSoup(html_text)
+            for link in soup.findAll('a'):
+              print("link", link.get('href'))
+
+
+            # write files
             filePrefix = options.outDir + "/" + str(docId)
 
             with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
