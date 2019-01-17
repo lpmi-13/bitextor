@@ -167,8 +167,8 @@ for record in f:
             #plainTextFile.write(b64text+b"\n")
             #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
 
-            sql = "INSERT INTO document(lang, md5) VALUES (%s, %s)"
-            val = (lang, hash)
+            sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
+            val = (mime, lang, hash)
             #print("val", type(val))
             mycursor.execute(sql, val)
             mydb.commit()
