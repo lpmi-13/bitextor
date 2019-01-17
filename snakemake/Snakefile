@@ -240,25 +240,22 @@ else:
 if "LANG1Tokenizer" in config:
   WORDTOK1=config["LANG1Tokenizer"]
 else:
-  WORDTOK1="{BITEXTOR}/preprocess/moses/tokenizer/tokenizer.perl -l {LANG1} -a -b -q"
+  WORDTOK1="{BITEXTOR}/preprocess/moses/tokenizer/tokenizer.perl -l {LANG1} -a -b -q".format(BITEXTOR=BITEXTOR, LANG1=LANG1)
 
 if "LANG2Tokenizer" in config:
   WORDTOK2=config["LANG2Tokenizer"]
 else:
-  WORDTOK2="{BITEXTOR}/preprocess/moses/tokenizer/tokenizer.perl -l {LANG2} -a -b -q"
+  WORDTOK2="{BITEXTOR}/preprocess/moses/tokenizer/tokenizer.perl -l {LANG2} -a -b -q".format(BITEXTOR=BITEXTOR, LANG2=LANG2)
 
 if "LANG1SentenceSplitter" in config:
   SENTTOK1=config["LANG1SentenceSplitter"]
 else:
-  SENTTOK1="{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {LANG1}"
+  SENTTOK1="{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {LANG1}".format(BITEXTOR=BITEXTOR, LANG1=LANG1)
 
 if "LANG2SentenceSplitter" in config:
   SENTTOK2=config["LANG2SentenceSplitter"]
 else:
-  SENTTOK2="{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {LANG2}"
-
-tokeniserCheck(WORDTOK1)
-tokeniserCheck(WORDTOK2)
+  SENTTOK2="{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {LANG2}".format(BITEXTOR=BITEXTOR, LANG2=LANG2)
 
 ############ OPTIONS FOR THE NATIVE BITEXTOR CRAWLER ############
 
@@ -353,6 +350,9 @@ if "bicleaner" in config:
   BICLEANER="bicleaner"
   BICLEANER_CONFIG=config["bicleaner"]
   BICLEANER_SORT="-r -k6,6 -k3,4"
+  tokeniserCheck(WORDTOK1)
+  tokeniserCheck(WORDTOK2)
+
 else:
   BICLEANEROPTION=""
   BICLEANER_SORT="-k3,4"
@@ -789,8 +789,6 @@ rule warc2preprocess:
 
 
 #================================== DICTIONARY-BASED DOCUMENT ALIGNMENT ==================================#
-
-
 rule lettr2idx:
     input:
         text='{target}/plain_text.xz',
@@ -1002,6 +1000,14 @@ rule aligndocumentsMarekCustomMT:
     shell:
         'python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} > {output}'
 
+rule aligndocumentsMarekSMT:
+    input:
+        lett="{target}/lett.xz",
+        matches="{target}/docalign/"+"{l1}-{l2}.{mttype}.matches".format(l1=LANG1,l2=LANG2,mttype=DOCALIGNEXT)
+    output:
+        '{target}/docalign.marek-smt'
+    shell:
+        'xzcat -T 0 -f {input.lett} | python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --threshold {DOC_THRESHOLD} > {output}'
 
 #================================== SEGMENT ALIGNMENT ==================================#
 
@@ -1033,7 +1039,7 @@ rule alignsegments_hunalign:
     output:
         '{prefix}/hunalign.segalign.xz'
     shell:
-        'xzcat -T 0 -f {input[1]} | {BITEXTOR}/bitextor-align-segments.py -d {input[0]} -t {TMPDIR} --lang1 {LANG1} --lang2 {LANG2} --hunalign-dir "{BITEXTOR}/bin" --sent-tokeniser_sl "{SENTTOK1}" --sent-tokeniser_tl "{SENTTOK2}" --word-tokeniser_sl "{WORDTOK1}" --word-tokeniser_tl "{WORDTOK2}" | xz -T 0 > {output}'
+        'xzcat -T 0 -f {input[1]} | {BITEXTOR}/bitextor-align-segments.py -d {input[0]} -t {TMPDIR} --lang1 {LANG1} --lang2 {LANG2} --hunalign-dir "{BITEXTOR}/hunalign/src/hunalign" --sent-tokeniser_sl "{SENTTOK1}" --sent-tokeniser_tl "{SENTTOK2}" --word-tokeniser_sl "{WORDTOK1}" --word-tokeniser_tl "{WORDTOK2}" | xz -T 0 > {output}'
 
 rule alignsegments_bleualign:
     input:

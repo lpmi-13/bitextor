@@ -30,7 +30,6 @@ import gzip
 from iso639 import languages
 from external_processor import ExternalTextProcessor
 
-
 def runAligner(filename1, filename2, dic, hunaligndir):
   # option -ppthresh=10?
   if dic == None or dic == "":
@@ -165,7 +164,7 @@ for line in reader_list:
   filename2=fields[1]
   encodedtext1=fields[2]
   encodedtext2=fields[3]
-   
+  
   extract_encoded_text(encodedtext1, tmp_file1, tmp_file1_origtext, options.morphanal1, options.senttok1, options.wordtok1)
   extract_encoded_text(encodedtext2, tmp_file2, tmp_file2_origtext, options.morphanal2, options.senttok2, options.wordtok2)
 
