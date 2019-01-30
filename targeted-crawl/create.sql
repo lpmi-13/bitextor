@@ -1,7 +1,8 @@
 
 /*
-CREATE DATABASE paracrawl;
 CREATE USER 'paracrawl_user'@'localhost' IDENTIFIED BY 'paracrawl_password';
+
+CREATE DATABASE paracrawl CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci';
 GRANT ALL PRIVILEGES ON paracrawl.* TO 'paracrawl_user'@'localhost';
 
 mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
@@ -23,7 +24,7 @@ CREATE TABLE IF NOT EXISTS document
 CREATE TABLE IF NOT EXISTS url
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    val VARCHAR(255) UNIQUE KEY,
+    val VARCHAR(1024) UNIQUE KEY,
     document_id INT REFERENCES document(id)
 );
 

@@ -1,5 +1,5 @@
 
 
 
-xzcat www.elenacaffe1863.com.xz | ./import-mysql.py --out-dir out
+xzcat www.bizerba.com.xz | ./import-mysql.py --out-dir out
 

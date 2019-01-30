@@ -62,7 +62,8 @@ mydb = mysql.connector.connect(
   host="localhost",
   user="paracrawl_user",
   passwd="paracrawl_password",
-  database="paracrawl"
+  database="paracrawl",
+  charset='utf8'
 )
 
 mycursor = mydb.cursor()
@@ -175,6 +176,7 @@ for record in f:
             docId = mycursor.lastrowid
 
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+            print("url", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
