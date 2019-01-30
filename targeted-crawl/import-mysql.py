@@ -176,28 +176,28 @@ for record in f:
             docId = mycursor.lastrowid
 
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-            print("url", url)
+            #print("url", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
 
             # links
             #print(html_text)
-            soup = BeautifulSoup(html_text)
+            soup = BeautifulSoup(html_text, features="lxml")
             for link in soup.findAll('a'):
                 url = link.get('href')
                 linkStr = link.string
                 imgURL = link.find('img')
                 if imgURL:
                     imgURL = imgURL['src']
-                print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+                #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
 
                 # does url already exist?
                 sql = "SELECT id FROM url WHERE val = %s"
                 val = (url, )
                 mycursor.execute(sql, val)
                 res = mycursor.fetchone()
-                print("res", res, hash, url)
+                #print("res", res, hash, url)
 
                 if (res is not None):
                     urlId = res[0]
@@ -208,7 +208,7 @@ for record in f:
                     mydb.commit()
                     urlId = mycursor.lastrowid
 
-                print("urlId", urlId)
+                #print("urlId", urlId)
 
                 sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
                 val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
