@@ -4,7 +4,7 @@ CREATE DATABASE paracrawl;
 CREATE USER 'paracrawl_user'@'localhost' IDENTIFIED BY 'paracrawl_password';
 GRANT ALL PRIVILEGES ON paracrawl.* TO 'paracrawl_user'@'localhost';
 
-mysql -u paracrawl_user -pparacrawl_password -Dparacrawl
+mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
 */
 
 DROP TABLE IF EXISTS document;

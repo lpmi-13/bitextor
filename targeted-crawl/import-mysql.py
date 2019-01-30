@@ -184,7 +184,8 @@ for record in f:
             soup = BeautifulSoup(html_text)
             for link in soup.findAll('a'):
                 url = link.get('href')
-                print("link", url)
+                linkStr = link.string
+                print("link", url, linkStr)
 
                 # does url already exist?
                 sql = "SELECT id FROM url WHERE val = %s"
@@ -205,7 +206,7 @@ for record in f:
                 print("urlId", urlId)
 
                 sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-                val =("text here", "hover here", None, int(docId), int(urlId))
+                val =(linkStr, "hover here", None, int(docId), int(urlId))
                 mycursor.execute(sql, val)
                 mydb.commit()
 
