@@ -82,6 +82,9 @@ for record in f:
     orig_encoding,html_text = convert_encoding(record.payload.read())
     pageURL=record.url
 
+    if pageURL == "unknown":
+        continue
+
     if orig_encoding == None:
       logging.info("Encoding of document " + pageURL + " could not be identified")
 
@@ -192,12 +195,15 @@ for record in f:
                 if url is not None:
                     url = urllib.parse.unquote(url)
                     url = urllib.parse.urljoin(pageURL, url)
-                    print("url3", url)
+                    #print("url3", url)
 
                     linkStr = link.string
                     imgURL = link.find('img')
                     if imgURL:
-                        imgURL = imgURL['src']
+                        imgURL = imgURL.get('src')
+                    else:
+                        imgURL = None
+
                     #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
 
                     # does url already exist?
