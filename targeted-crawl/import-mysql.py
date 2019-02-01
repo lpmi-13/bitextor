@@ -41,6 +41,11 @@ def convert_encoding(data):
 
   return (None,'')
 ######################################################################################
+def strip_scheme(url):
+    parsed = urllib.parse.urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
+######################################################################################
 
 print("Starting")
 
@@ -195,6 +200,7 @@ for record in f:
                 if url is not None:
                     url = urllib.parse.unquote(url)
                     url = urllib.parse.urljoin(pageURL, url)
+                    url = strip_scheme(url)
                     #print("url3", url)
 
                     linkStr = link.string
