@@ -80,10 +80,10 @@ magic.Magic(mime=True)
 for record in f:
     #We convert into UTF8 first of all
     orig_encoding,html_text = convert_encoding(record.payload.read())
-    url=record.url
+    pageURL=record.url
 
     if orig_encoding == None:
-      logging.info("Encoding of document " + url + " could not be identified")
+      logging.info("Encoding of document " + pageURL + " could not be identified")
 
     if len(html_text) > 0:
       # HTML is then normalized
@@ -98,7 +98,7 @@ for record in f:
       # lang id
       lang = guess_lang_from_data2(cleantree)
       if len(languages)>0 and lang not in languages:
-        logging.info("Language of document "+url+": "+lang+". Not among searched languages.")
+        logging.info("Language of document "+pageURL+": "+lang+". Not among searched languages.")
       else:
         #If enabled, remove boilerplate HTML
         if options.boilerpipe:
@@ -118,14 +118,14 @@ for record in f:
         val = (hash,)
         mycursor.execute(sql, val)
         res = mycursor.fetchone()
-        print("page", res, hash, url)
+        print("page", res, hash, pageURL)
 
         #checking for duplicate content (duplicates are discarded)
         if res is not None:
             docId = res[0]
             sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url1", url)
-            val = (url, int(docId))
+            #print("url1", pageURL)
+            val = (pageURL, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
 
@@ -177,9 +177,9 @@ for record in f:
             mydb.commit()
             docId = mycursor.lastrowid
 
-            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url2", url)
-            val = (url, int(docId))
+            sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
+            #print("url2", pageURL)
+            val = (pageURL, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
 
@@ -191,7 +191,8 @@ for record in f:
 
                 if url is not None:
                     url = urllib.parse.unquote(url)
-                    #print("url3", url)
+                    url = urllib.parse.urljoin(pageURL, url)
+                    print("url3", url)
 
                     linkStr = link.string
                     imgURL = link.find('img')
