@@ -15,6 +15,7 @@ import magic
 import base64
 import html
 import lzma
+import urllib
 import pycld2 as cld2
 from lxml.html.clean import Cleaner
 from lxml import etree
@@ -123,6 +124,7 @@ for record in f:
         if res is not None:
             docId = res[0]
             sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
+            print("url1", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
@@ -176,7 +178,7 @@ for record in f:
             docId = mycursor.lastrowid
 
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url", url)
+            print("url2", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
@@ -203,6 +205,8 @@ for record in f:
                     urlId = res[0]
                 else:
                     sql = "INSERT INTO url(val) VALUES(%s)"
+                    url = urllib.parse.unquote(url)
+                    print("url3", url)
                     val = (url, )
                     mycursor.execute(sql, val)
                     mydb.commit()
