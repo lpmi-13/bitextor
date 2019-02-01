@@ -118,13 +118,13 @@ for record in f:
         val = (hash,)
         mycursor.execute(sql, val)
         res = mycursor.fetchone()
-        print("res", res, hash, url)
+        print("page", res, hash, url)
 
         #checking for duplicate content (duplicates are discarded)
         if res is not None:
             docId = res[0]
             sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
-            print("url1", url)
+            #print("url1", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
@@ -178,7 +178,7 @@ for record in f:
             docId = mycursor.lastrowid
 
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-            print("url2", url)
+            #print("url2", url)
             val = (url, int(docId))
             mycursor.execute(sql, val)
             mydb.commit()
@@ -188,36 +188,39 @@ for record in f:
             soup = BeautifulSoup(html_text, features="lxml")
             for link in soup.findAll('a'):
                 url = link.get('href')
-                linkStr = link.string
-                imgURL = link.find('img')
-                if imgURL:
-                    imgURL = imgURL['src']
-                #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
 
-                # does url already exist?
-                sql = "SELECT id FROM url WHERE val = %s"
-                val = (url, )
-                mycursor.execute(sql, val)
-                res = mycursor.fetchone()
-                #print("res", res, hash, url)
-
-                if (res is not None):
-                    urlId = res[0]
-                else:
-                    sql = "INSERT INTO url(val) VALUES(%s)"
+                if url is not None:
                     url = urllib.parse.unquote(url)
-                    print("url3", url)
+                    #print("url3", url)
+
+                    linkStr = link.string
+                    imgURL = link.find('img')
+                    if imgURL:
+                        imgURL = imgURL['src']
+                    #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+
+                    # does url already exist?
+                    sql = "SELECT id FROM url WHERE val = %s"
                     val = (url, )
                     mycursor.execute(sql, val)
+                    res = mycursor.fetchone()
+                    #print("res", res, hash, url)
+
+                    if (res is not None):
+                        urlId = res[0]
+                    else:
+                        sql = "INSERT INTO url(val) VALUES(%s)"
+                        val = (url, )
+                        mycursor.execute(sql, val)
+                        mydb.commit()
+                        urlId = mycursor.lastrowid
+
+                    #print("urlId", urlId)
+
+                    sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
+                    val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
+                    mycursor.execute(sql, val)
                     mydb.commit()
-                    urlId = mycursor.lastrowid
-
-                #print("urlId", urlId)
-
-                sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-                val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
-                mycursor.execute(sql, val)
-                mydb.commit()
 
             # write files
             filePrefix = options.outDir + "/" + str(docId)
