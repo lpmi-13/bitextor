@@ -199,11 +199,23 @@ for record in f:
             #mydb.commit()
             docId = mycursor.lastrowid
 
-            sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url2", pageURL)
-            val = (pageURL, int(docId))
+            sql = "SELECT id, document_id FROM url WHERE val = %s"
+            val = (pageURL, )
             mycursor.execute(sql, val)
-            #mydb.commit()
+            res = mycursor.fetchone()
+
+            if res is not None:
+                # url exists
+                assert(res[1] == None)
+                sql = "UPDATE url SET document_id = %s WHERE val = %s"
+                val = (int(docId), pageURL)
+                mycursor.execute(sql, val)
+            else:
+                sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+                #print("url1", pageURL)
+                val = (pageURL, int(docId))
+                mycursor.execute(sql, val)
+
 
             # links
             #print(html_text)
