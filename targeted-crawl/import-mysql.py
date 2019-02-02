@@ -82,7 +82,13 @@ f = warc.WARCFile(fileobj=sys.stdin.buffer)
 seen_md5={}
 magic.Magic(mime=True)
 
+numPages = 0
 for record in f:
+    numPages += 1
+    if numPages % 100 == 0:
+        print("write", numPages)
+        mydb.commit()
+
     #We convert into UTF8 first of all
     orig_encoding,html_text = convert_encoding(record.payload.read())
     pageURL=record.url
@@ -262,7 +268,7 @@ for record in f:
                     mycursor.execute(sql, val)
                     #mydb.commit()
 
-            mydb.commit()
+            #mydb.commit()
 
             # write files
             filePrefix = options.outDir + "/" + str(docId)
@@ -274,5 +280,6 @@ for record in f:
             with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
               textFile.write(plaintext)
 
+mydb.commit()
 
 print("Finished")
