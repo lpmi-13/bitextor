@@ -198,12 +198,13 @@ for record in f:
                 url = link.get('href')
 
                 if url is not None:
+                    linkStr = link.string
+
                     url = urllib.parse.unquote(url)
                     url = urllib.parse.urljoin(pageURL, url)
                     url = strip_scheme(url)
                     #print("url3", url)
 
-                    linkStr = link.string
                     imgURL = link.find('img')
                     if imgURL:
                         imgURL = imgURL.get('src')
@@ -225,15 +226,17 @@ for record in f:
                         sql = "INSERT INTO url(val) VALUES(%s)"
                         val = (url, )
                         mycursor.execute(sql, val)
-                        mydb.commit()
+                        #mydb.commit()
                         urlId = mycursor.lastrowid
 
                     #print("urlId", urlId)
 
                     sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-                    val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
+                    val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
                     mycursor.execute(sql, val)
-                    mydb.commit()
+                    #mydb.commit()
+
+            mydb.commit()
 
             # write files
             filePrefix = options.outDir + "/" + str(docId)
