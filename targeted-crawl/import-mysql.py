@@ -130,13 +130,27 @@ for record in f:
 
         #checking for duplicate content (duplicates are discarded)
         if res is not None:
+            # duplicate page
             docId = res[0]
-            sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url1", pageURL)
-            val = (pageURL, int(docId))
-            mycursor.execute(sql, val)
-            #mydb.commit()
 
+            sql = "SELECT id, document_id FROM url WHERE val = %s"
+            val = (pageURL, )
+            mycursor.execute(sql, val)
+            res = mycursor.fetchone()
+
+            if res is not None:
+                # url exists
+                assert(res[1] == None)
+                sql = "UPDATE url SET document_id = %s WHERE val = %s"
+                val = (docId, pageURL)
+                mycursor.execute(sql, val)
+            else:
+                sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+                #print("url1", pageURL)
+                val = (pageURL, int(docId))
+                mycursor.execute(sql, val)
+            #mydb.commit()
+            print("HH1")
         else:
           #If enabled get text with Alcazar library
           if options.alcazar:
