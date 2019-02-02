@@ -135,7 +135,7 @@ for record in f:
             #print("url1", pageURL)
             val = (pageURL, int(docId))
             mycursor.execute(sql, val)
-            mydb.commit()
+            #mydb.commit()
 
         else:
           #If enabled get text with Alcazar library
@@ -182,14 +182,14 @@ for record in f:
             val = (mime, lang, hash)
             #print("val", type(val))
             mycursor.execute(sql, val)
-            mydb.commit()
+            #mydb.commit()
             docId = mycursor.lastrowid
 
             sql = "INSERT IGNORE INTO url(val, document_id) VALUES (%s, %s)"
             #print("url2", pageURL)
             val = (pageURL, int(docId))
             mycursor.execute(sql, val)
-            mydb.commit()
+            #mydb.commit()
 
             # links
             #print(html_text)
