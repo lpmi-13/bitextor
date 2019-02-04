@@ -23,23 +23,23 @@ from bs4 import BeautifulSoup
 
 ######################################################################################
 def guess_lang_from_data2(data):
-  reliable, text_bytes, detected_languages = cld2.detect(
-    data, isPlainText=False)
-  return detected_languages[0][1]
+    reliable, text_bytes, detected_languages = cld2.detect(
+        data, isPlainText=False)
+    return detected_languages[0][1]
 
 ######################################################################################
 def convert_encoding(data):
-  encoding = cchardet.detect(data)['encoding']
+    encoding = cchardet.detect(data)['encoding']
 
-  if len(data) > 0:
-    #We convert, even if the text is detected to be UTF8 so, if it is an error and conversion fails, the error is catched here
-    for enc in [encoding, 'utf-8', 'iso-8859-1', 'windows‑1252']:
-      try:
-        return (enc,data.decode(enc))
-      except UnicodeDecodeError:
-        pass
+    if len(data) > 0:
+        #We convert, even if the text is detected to be UTF8 so, if it is an error and conversion fails, the error is catched here
+        for enc in [encoding, 'utf-8', 'iso-8859-1', 'windows‑1252']:
+            try:
+                return (enc,data.decode(enc))
+            except UnicodeDecodeError:
+                pass
 
-  return (None,'')
+    return (None,'')
 ######################################################################################
 def strip_scheme(url):
     parsed = urllib.parse.urlparse(url)
@@ -59,17 +59,17 @@ options = oparser.parse_args()
 
 languages=[]
 if options.l1 != None:
-  languages.append(options.l1)
+    languages.append(options.l1)
 if options.l2 != None:
-  languages.append(options.l2)
+    languages.append(options.l2)
 
 
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="paracrawl_user",
-  passwd="paracrawl_password",
-  database="paracrawl",
-  charset='utf8'
+    host="localhost",
+    user="paracrawl_user",
+    passwd="paracrawl_password",
+    database="paracrawl",
+    charset='utf8'
 )
 
 mycursor = mydb.cursor()
@@ -94,90 +94,95 @@ for record in f:
     pageURL=record.url
 
     if pageURL == "unknown":
+        logging.info("Unknown page url")
         continue
 
     if orig_encoding == None:
-      logging.info("Encoding of document " + pageURL + " could not be identified")
+        logging.info("Encoding of document " + pageURL + " could not be identified")
 
-    if len(html_text) > 0:
-      # HTML is then normalized
-      cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
+    if len(html_text) == 0:
+        logging.info("Empty page")
+        continue
 
-      cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', html_text, flags=re.IGNORECASE))
-      document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
-      tree = etree.tostring(document)
-      cleantree = tree.decode("utf8").replace("&#160;", " ")
-      cleantree = cleantree.replace("\t", " ")
+    # HTML is then normalized
+    cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
 
-      # lang id
-      lang = guess_lang_from_data2(cleantree)
-      if len(languages)>0 and lang not in languages:
+    cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', html_text, flags=re.IGNORECASE))
+    document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
+    tree = etree.tostring(document)
+    cleantree = tree.decode("utf8").replace("&#160;", " ")
+    cleantree = cleantree.replace("\t", " ")
+
+    # lang id
+    lang = guess_lang_from_data2(cleantree)
+    if len(languages)>0 and lang not in languages:
         logging.info("Language of document "+pageURL+": "+lang+". Not among searched languages.")
-      else:
-        #If enabled, remove boilerplate HTML
-        if options.boilerpipe:
-          extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
-          deboiled = extractor.getHTML()
-        else:
-          deboiled = cleantree
+        continue
 
-        #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
-        c = hashlib.md5()
-        c.update(deboiled.encode())
+    #If enabled, remove boilerplate HTML
+    if options.boilerpipe:
+        extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
+        deboiled = extractor.getHTML()
+    else:
+        deboiled = cleantree
 
-        hash = c.hexdigest()
-        #print("c", hash)
+    #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
+    c = hashlib.md5()
+    c.update(deboiled.encode())
 
-        sql = "SELECT id FROM document WHERE md5 = %s"
-        val = (hash,)
+    hash = c.hexdigest()
+    #print("c", hash)
+
+    sql = "SELECT id FROM document WHERE md5 = %s"
+    val = (hash,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+    print("page", res, hash, pageURL)
+
+    #checking for duplicate content (duplicates are discarded)
+    if res is not None:
+        # duplicate page
+        docId = res[0]
+
+        sql = "SELECT id, document_id FROM url WHERE val = %s"
+        val = (pageURL, )
         mycursor.execute(sql, val)
         res = mycursor.fetchone()
-        print("page", res, hash, pageURL)
 
-        #checking for duplicate content (duplicates are discarded)
         if res is not None:
-            # duplicate page
-            docId = res[0]
-
-            sql = "SELECT id, document_id FROM url WHERE val = %s"
-            val = (pageURL, )
+            # url exists
+            assert(res[1] == None)
+            sql = "UPDATE url SET document_id = %s WHERE val = %s"
+            val = (docId, pageURL)
             mycursor.execute(sql, val)
-            res = mycursor.fetchone()
-
-            if res is not None:
-                # url exists
-                assert(res[1] == None)
-                sql = "UPDATE url SET document_id = %s WHERE val = %s"
-                val = (docId, pageURL)
-                mycursor.execute(sql, val)
-            else:
-                sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-                #print("url1", pageURL)
-                val = (pageURL, int(docId))
-                mycursor.execute(sql, val)
-            #mydb.commit()
-            print("HH1")
         else:
-          #If enabled get text with Alcazar library
-          if options.alcazar:
+            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+            #print("url1", pageURL)
+            val = (pageURL, int(docId))
+            mycursor.execute(sql, val)
+        #mydb.commit()
+        print("HH1")
+    else:
+        #If enabled get text with Alcazar library
+        if options.alcazar:
             btext = alcazar.bodytext.parse_article(cleantree)
             if btext.body_text:
-              plaintext = btext.body_text
+                plaintext = btext.body_text
             else:
-              plaintext = ""
-          #Otherwise use beautifulsoup
-          else:
+                plaintext = ""
+        #Otherwise use beautifulsoup
+        else:
             if options.boilerpipe:
-              soup = BeautifulSoup(deboiled, "lxml")
+                soup = BeautifulSoup(deboiled, "lxml")
             else:
-              soup = BeautifulSoup(cleantree, "lxml")
+                soup = BeautifulSoup(cleantree, "lxml")
             for script in soup(["script", "style", "img"]):
                 script.extract()    # rip it out
 
             plaintext = soup.get_text()
             plaintext = re.sub(r"\n+","\n",re.sub(r" *\n *","\n",re.sub(r" +"," ",re.sub(r"\r","", plaintext))))
 
-          if len(plaintext) > 0:
+        if len(plaintext) > 0:
             #Guessing MIME of the file (checked on original content)
             mime=magic.from_buffer(html_text, mime=True)
             #mimeFile.write(mime.encode()+b"\n")
@@ -191,8 +196,8 @@ for record in f:
             #normHtmlFile.write(b64norm+b"\n")
 
             if options.boilerpipe:
-              b64deboil=base64.b64encode(deboiled.encode())
-              #deboilFile.write(b64deboil+b"\n")
+                b64deboil=base64.b64encode(deboiled.encode())
+                #deboilFile.write(b64deboil+b"\n")
 
             b64text=base64.b64encode(html.unescape(plaintext).encode())
             #plainTextFile.write(b64text+b"\n")
@@ -274,11 +279,11 @@ for record in f:
             filePrefix = options.outDir + "/" + str(docId)
 
             with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-              htmlFile.write(html_text)
+                htmlFile.write(html_text)
             with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
-              normHtmlFile.write(norm_html.decode("utf-8"))
+                normHtmlFile.write(norm_html.decode("utf-8"))
             with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
-              textFile.write(plaintext)
+                textFile.write(plaintext)
 
 mydb.commit()
 
