@@ -151,17 +151,17 @@ for record in f:
 
         if res is not None:
             # url exists
-            assert(res[1] == None)
-            sql = "UPDATE url SET document_id = %s WHERE val = %s"
-            val = (docId, pageURL)
-            mycursor.execute(sql, val)
+            if res[1] is None:
+                sql = "UPDATE url SET document_id = %s WHERE val = %s"
+                val = (docId, pageURL)
+                mycursor.execute(sql, val)
+            else:
+                assert(res[1] == docId)
         else:
             sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
             #print("url1", pageURL)
             val = (pageURL, int(docId))
             mycursor.execute(sql, val)
-        #mydb.commit()
-        print("HH1")
     else:
         #If enabled get text with Alcazar library
         if options.alcazar:
@@ -207,7 +207,6 @@ for record in f:
             val = (mime, lang, hash)
             #print("val", type(val))
             mycursor.execute(sql, val)
-            #mydb.commit()
             docId = mycursor.lastrowid
 
             sql = "SELECT id, document_id FROM url WHERE val = %s"
@@ -263,7 +262,6 @@ for record in f:
                         sql = "INSERT INTO url(val) VALUES(%s)"
                         val = (url, )
                         mycursor.execute(sql, val)
-                        #mydb.commit()
                         urlId = mycursor.lastrowid
 
                     #print("urlId", urlId)
@@ -271,9 +269,6 @@ for record in f:
                     sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
                     val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
                     mycursor.execute(sql, val)
-                    #mydb.commit()
-
-            #mydb.commit()
 
             # write files
             filePrefix = options.outDir + "/" + str(docId)
