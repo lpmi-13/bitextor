@@ -46,3 +46,8 @@ CREATE TABLE IF NOT EXISTS document_align
     score FLOAT
 );
 
+/*
+delete from document where id > 84571;
+delete from url where id > 1328114;
+delete from link where id > 84571;
+*/
