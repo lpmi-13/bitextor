@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import mysql.connector
+import lzma
 
 oparser = argparse.ArgumentParser(description="Hello")
 oparser.add_argument('--dir', dest='dir', help='Data directory', required=True)
