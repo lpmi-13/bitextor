@@ -58,7 +58,7 @@ for fileName in os.listdir(options.dir):
     txtPath = options.dir + "/" + fileName
     with lzma.open(txtPath, 'rt') as f:
         txt = f.read()
-    #print("txt", txt)
+    print("txt", type(txt))
 
     #cmd = "xzcat " + txtPath + " | ~/workspace/github/mosesdecoder/bin/moses2 -f /home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
     #systemCheck(cmd)
@@ -66,9 +66,7 @@ for fileName in os.listdir(options.dir):
                              "-f",
                              "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    proc.stdin.write("matthew\n".encode('utf-8'))
-    proc.stdin.write("mark\n".encode('utf-8'))
-    proc.stdin.write("luke\n".encode('utf-8'))
+    proc.stdin.write(txt.encode('utf-8'))
     proc.stdin.close()
 
     while proc.returncode is None:
