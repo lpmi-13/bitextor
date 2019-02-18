@@ -64,13 +64,26 @@ for fileName in os.listdir(options.dir):
     #systemCheck(cmd)
     proc = subprocess.Popen(["/home/hieu/workspace/github/mosesdecoder/bin/moses2",
                              "-f",
-                             "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    proc.stdin.write(txt.encode('utf-8'))
-    proc.stdin.close()
+                             "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1",
+                             "-i",
+                             "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/targeted-crawl/9026.text"
+                             ],
+                            stdout=subprocess.PIPE) #stdin=subprocess.PIPE,
+    #proc.stdin.write(txt.encode('utf-8'))
+    #proc.stdin.close()
 
-    while proc.returncode is None:
-        proc.poll()
+    #while proc.returncode is None:
+    #    proc.poll()
+    #    o = proc.stdout.read()
+    #    print(o)
+    while True:
+        output = proc.stdout.readline()
+        if output == '' and proc.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+    rc = proc.poll()
 
-    print("I got back from the program this:\n{0}".format(proc.stdout.read()))
+
+    #print("I got back from the program this:\n{0}".format(proc.stdout.read()))
 
