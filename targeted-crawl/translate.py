@@ -46,6 +46,7 @@ for fileName in os.listdir(options.dir):
     # what language is it in?
     sql = "SELECT lang FROM document WHERE id = %s"
     val = (fileId,)
+    print("fileId", fileId)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
     assert(res != None)
@@ -75,7 +76,7 @@ for fileName in os.listdir(options.dir):
         proc.poll()
         out = proc.stdout.read()
         out = out.decode("utf-8")
-        print(out)
+        #print(out)
     #while True:
     #    output = proc.stdout.readline()
     #    if output == '' and proc.poll() is not None:
