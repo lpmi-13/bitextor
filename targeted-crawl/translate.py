@@ -58,8 +58,11 @@ for fileName in os.listdir(options.dir):
 
     txtPath = options.dir + "/" + fileName
     with lzma.open(txtPath, 'rt') as f:
-        txt = f.read()
-    #print("txt", len(txt))
+        inLines = f.read()
+        inLines = inLines.split("\n")
+        if len(inLines[-1]) == 0:
+            del inLines[-1]
+    print("inLines", len(inLines), inLines[-1])
 
     #cmd = "xzcat " + txtPath + " | ~/workspace/github/mosesdecoder/bin/moses2 -f /home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
     #systemCheck(cmd)
@@ -69,26 +72,18 @@ for fileName in os.listdir(options.dir):
                              "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
                              ],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    proc.stdin.write(txt.encode('utf-8'))
-    proc.stdin.close()
 
-    trans = []
-    while proc.returncode is None:
-        proc.poll()
-        lineOut = proc.stdout.read()
-        lineOut = lineOut.decode("utf-8")
-        trans.append(lineOut)
-    #while True:
-    #    output = proc.stdout.readline()
-    #    if output == '' and proc.poll() is not None:
-    #        break
-    #    if output:
-    #        print(output.strip())
-
-    assert(len(trans) == 2)
-    #print("trans", len(trans), trans[1])
     transPath = options.dir + "/" + str(fileId) + ".trans.xz"
-    with lzma.open(transPath, 'wt') as f:
-        f.write(trans[0])
+    outFile = lzma.open(transPath, 'wt')
+
+    for inLine in inLines:
+        inLine += "\n"
+        proc.stdin.write(inLine.encode('utf-8'))
+        proc.stdin.flush()
+        outLine = proc.stdout.readline()
+        outLine = outLine.decode("utf-8")
+        outFile.write(outLine)
+
+    outFile.close()
 
 
