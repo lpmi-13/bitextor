@@ -85,9 +85,10 @@ for fileName in os.listdir(options.dir):
     #    if output:
     #        print(output.strip())
 
-    print(trans)
+    assert(len(trans) == 2)
+    #print("trans", len(trans), trans[1])
     transPath = options.dir + "/" + str(fileId) + ".trans.xz"
     with lzma.open(transPath, 'wt') as f:
-        f.write("\n".join(trans))
+        f.write(trans[0])
 
 
