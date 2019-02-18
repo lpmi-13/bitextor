@@ -71,16 +71,17 @@ for fileName in os.listdir(options.dir):
     proc.stdin.write(txt.encode('utf-8'))
     proc.stdin.close()
 
-    #while proc.returncode is None:
-    #    proc.poll()
-    #    o = proc.stdout.read()
-    #    print(o)
-    while True:
-        output = proc.stdout.readline()
-        if output == '' and proc.poll() is not None:
-            break
-        if output:
-            print(output.strip())
+    while proc.returncode is None:
+        proc.poll()
+        out = proc.stdout.read()
+        out = out.decode("utf-8")
+        print(out)
+    #while True:
+    #    output = proc.stdout.readline()
+    #    if output == '' and proc.poll() is not None:
+    #        break
+    #    if output:
+    #        print(output.strip())
 
 
     #print("I got back from the program this:\n{0}".format(proc.stdout.read()))
