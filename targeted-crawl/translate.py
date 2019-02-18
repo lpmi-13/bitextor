@@ -59,7 +59,7 @@ for fileName in os.listdir(options.dir):
     txtPath = options.dir + "/" + fileName
     with lzma.open(txtPath, 'rt') as f:
         txt = f.read()
-    print("txt", type(txt))
+    #print("txt", len(txt))
 
     #cmd = "xzcat " + txtPath + " | ~/workspace/github/mosesdecoder/bin/moses2 -f /home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
     #systemCheck(cmd)
@@ -72,11 +72,12 @@ for fileName in os.listdir(options.dir):
     proc.stdin.write(txt.encode('utf-8'))
     proc.stdin.close()
 
+    trans = []
     while proc.returncode is None:
         proc.poll()
-        out = proc.stdout.read()
-        out = out.decode("utf-8")
-        #print(out)
+        lineOut = proc.stdout.read()
+        lineOut = lineOut.decode("utf-8")
+        trans.append(lineOut)
     #while True:
     #    output = proc.stdout.readline()
     #    if output == '' and proc.poll() is not None:
@@ -84,6 +85,9 @@ for fileName in os.listdir(options.dir):
     #    if output:
     #        print(output.strip())
 
+    print(trans)
+    transPath = options.dir + "/" + str(fileId) + ".trans.xz"
+    with lzma.open(transPath, 'wt') as f:
+        f.write("\n".join(trans))
 
-    #print("I got back from the program this:\n{0}".format(proc.stdout.read()))
 
