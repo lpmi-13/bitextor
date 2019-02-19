@@ -78,15 +78,12 @@ for fileName in os.listdir(options.dir):
             del inLines[-1]
     print("fileName", fileName, filePrefix, fileName[-8:], translatedFile, lang, len(inLines))
 
-    # sentence split and translate
-    transPath = options.dir + "/" + str(fileId) + ".trans.xz"
-    outFile = lzma.open(transPath, 'wt')
-
+    # split
+    extractedLines = []
     for inLine in inLines:
         #print("inLine", inLine)
         #inLine += "\n"
 
-        # split
         frSplitProc = subprocess.Popen(
             ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
              "-b",
@@ -98,15 +95,20 @@ for fileName in os.listdir(options.dir):
         splittedLines = cout.decode("utf-8")
         splittedLines = splittedLines[0:-1].split("\n")
         print("splittedLines", inLine, splittedLines)
+        extractedLines += splittedLines
 
-        # translate
-        for splittedLine in splittedLines:
-            splittedLine += "\n"
-            mtProc.stdin.write(splittedLine.encode('utf-8'))
-            mtProc.stdin.flush()
-            outLine = mtProc.stdout.readline()
-            outLine = outLine.decode("utf-8")
-            outFile.write(outLine)
+    # translate
+    transPath = options.dir + "/" + str(fileId) + ".trans.xz"
+    outFile = lzma.open(transPath, 'wt')
+
+    for inLine in extractedLines:
+        #print("inLine", inLine)
+        inLine += "\n"
+        mtProc.stdin.write(inLine.encode('utf-8'))
+        mtProc.stdin.flush()
+        outLine = mtProc.stdout.readline()
+        outLine = outLine.decode("utf-8")
+        outFile.write(outLine)
 
     outFile.close()
 
