@@ -44,10 +44,6 @@ enSplitProc = subprocess.Popen(["/home/hieu/workspace/github/mosesdecoder/script
                                 "-l", "en"],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-frSplitProc = subprocess.Popen(["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
-                                "-b",
-                                "-l", "fr"],
-                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 for fileName in os.listdir(options.dir):
     if fileName[-8:] != ".text.xz":
@@ -88,29 +84,30 @@ for fileName in os.listdir(options.dir):
 
     for inLine in inLines:
         print("inLine", inLine)
-        inLine += "\n"
+        #inLine += "\n"
+
+        # split
+        frSplitProc = subprocess.Popen(
+            ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
+             "-b",
+             "-l", "fr"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
 
-        #frSplitProc.stdin.write(inLine.encode('utf-8'))
-        #frSplitProc.stdin.flush()
+        splittedLines = cout.decode("utf-8")
+        splittedLines = splittedLines[0:-1].split("\n")
+        print("splittedLines", splittedLines)
 
-        print("cout", cout)
-
-        #lines = frSplitProc.stdout.read()
-        #print("split", lines)
-        #while frSplitProc.poll() is None:
-        #    pass
-
-        #    line = frSplitProc.stdout.readline()
-        #    print("split", line)
-
-        mtProc.stdin.write(inLine.encode('utf-8'))
-        mtProc.stdin.flush()
-        outLine = mtProc.stdout.readline()
-        outLine = outLine.decode("utf-8")
-        outFile.write(outLine)
+        # translate
+        for splittedLine in splittedLines:
+            splittedLine += "\n"
+            mtProc.stdin.write(splittedLine.encode('utf-8'))
+            mtProc.stdin.flush()
+            outLine = mtProc.stdout.readline()
+            outLine = outLine.decode("utf-8")
+            outFile.write(outLine)
 
     outFile.close()
 
-    exit()
+    #exit()
