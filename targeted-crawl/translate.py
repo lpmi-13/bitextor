@@ -63,6 +63,9 @@ for fileName in os.listdir(options.dir):
     assert(res != None)
     lang = res[0]
 
+    if lang not in ["en", "fr"]:
+        continue
+
     # read input
     txtPath = options.dir + "/" + fileName
     with lzma.open(txtPath, 'rt') as f:
