@@ -54,10 +54,6 @@ for fileName in os.listdir(options.dir):
     translatedFile = filePrefix + ".trans"
     #print("fileName", fileName, filePrefix, fileName[-8:], translatedFile)
 
-    # translated already?
-    if os.path.isfile(translatedFile):
-        continue
-
     # what language is it in?
     sql = "SELECT lang FROM document WHERE id = %s"
     val = (fileId,)
@@ -67,9 +63,7 @@ for fileName in os.listdir(options.dir):
     assert(res != None)
     lang = res[0]
 
-    if lang != "fr":
-        continue
-
+    # read input
     txtPath = options.dir + "/" + fileName
     with lzma.open(txtPath, 'rt') as f:
         inLines = f.read()
@@ -94,12 +88,20 @@ for fileName in os.listdir(options.dir):
 
         splittedLines = cout.decode("utf-8")
         splittedLines = splittedLines[0:-1].split("\n")
-        print("splittedLines", inLine, splittedLines)
+        #print("splittedLines", inLine, splittedLines)
         extractedLines += splittedLines
+
+    extractPath = options.dir + "/" + str(fileId) + "." + lang + ".extracted.xz"
+    with lzma.open(extractPath, 'wt') as extractFile:
+        for extractedLine in extractedLines:
+            extractFile.write(extractedLine + "\n")
+
+    if lang != "fr":
+        continue
 
     # translate
     transPath = options.dir + "/" + str(fileId) + ".trans.xz"
-    outFile = lzma.open(transPath, 'wt')
+    transFile = lzma.open(transPath, 'wt')
 
     for inLine in extractedLines:
         #print("inLine", inLine)
@@ -108,8 +110,8 @@ for fileName in os.listdir(options.dir):
         mtProc.stdin.flush()
         outLine = mtProc.stdout.readline()
         outLine = outLine.decode("utf-8")
-        outFile.write(outLine)
+        transFile.write(outLine)
 
-    outFile.close()
+    transFile.close()
 
     #exit()
