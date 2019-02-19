@@ -83,7 +83,7 @@ for fileName in os.listdir(options.dir):
     outFile = lzma.open(transPath, 'wt')
 
     for inLine in inLines:
-        print("inLine", inLine)
+        #print("inLine", inLine)
         #inLine += "\n"
 
         # split
@@ -97,7 +97,7 @@ for fileName in os.listdir(options.dir):
 
         splittedLines = cout.decode("utf-8")
         splittedLines = splittedLines[0:-1].split("\n")
-        print("splittedLines", splittedLines)
+        print("splittedLines", inLine, splittedLines)
 
         # translate
         for splittedLine in splittedLines:
