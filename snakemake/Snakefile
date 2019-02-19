@@ -21,6 +21,8 @@ from cerberus import Validator
 ###########################################################
 # UTILS
 
+shell.prefix("sync; set -euo pipefail; ")
+
 def binaryAvailable(cmd):
     cmd="command -v "+cmd+" > /dev/null"
     callout=os.system(cmd)
@@ -39,8 +41,8 @@ def tokeniserCheck(cmd):
         exit(1)
 
 def systemCheck(cmd):
-    sys.stderr.write("Executing:" + cmd + " on " + socket.gethostname() + "\n")
-    sys.stderr.flush()
+    #sys.stderr.write("Executing:" + cmd + " on " + socket.gethostname() + "\n")
+    #sys.stderr.flush()
 
     subprocess.check_call(cmd, shell=True)
 
@@ -224,6 +226,7 @@ if "temp" in config:
   TMPDIR=config["temp"]
 else:
   TMPDIR=transient
+shell("mkdir -p "+TMPDIR)
 
 if "hunalignThreshold" in config:
   MINQUALITY=config["hunalignThreshold"]
@@ -486,8 +489,8 @@ def GetHostsFromLangstat(langstat_path, lang1, lang2, threshold, exclude_path):
 
     hostsToCrawl = set()
 
-    sys.stderr.write(
-        "Gathering domain information for {0} and {1}...\n".format(*l12))
+    #sys.stderr.write(
+    #    "Gathering domain information for {0} and {1}...\n".format(*l12))
     with tqdm(total=None) as pbar:
         with open_gzip_or_plain(langstat_path) as f:
 
@@ -561,7 +564,7 @@ if os.path.isfile(permanent + "/hosts.gz"):
     with gzip.open(permanent + "/hosts.gz", 'rt') as f:
         hosts = f.read().splitlines()
     hosts = set(hosts)
-    sys.stderr.write("read hosts from file=" + str(len(hosts)) + "\n")
+    #sys.stderr.write("read hosts from file=" + str(len(hosts)) + "\n")
 
 else:
     hosts = set()
@@ -569,7 +572,7 @@ else:
     if "hosts" in config:
         newHosts = config["hosts"]
         hosts = hosts.union(newHosts)
-        sys.stderr.write("#hosts given=" + str(len(newHosts)) + "\n")
+        #sys.stderr.write("#hosts given=" + str(len(newHosts)) + "\n")
 
     if "langstat" in config:
         langstat_path = config["langstat"]
@@ -580,13 +583,13 @@ else:
 
         newHosts = GetHostsFromLangstat(langstat_path, lang1, lang2, threshold, exclude_path)
         hosts = hosts.union(newHosts)
-        sys.stderr.write("#hosts found in langstat=" + str(len(newHosts)) + "\n")
+        #sys.stderr.write("#hosts found in langstat=" + str(len(newHosts)) + "\n")
 
     if "hostPath" in config:
         path = config["hostPath"]
         with gzip.open(path, 'rt') as f:
             newHosts = f.read().splitlines()
-            sys.stderr.write("#hostPath=" + str(len(newHosts)) + "\n")
+            #sys.stderr.write("#hostPath=" + str(len(newHosts)) + "\n")
 
         hosts = hosts.union(newHosts)
 
@@ -763,7 +766,7 @@ rule train_smt_with_crawl_data:
     output:
         report = "{dir}/smt-dir-crawl/steps/1/REPORTING_report.1.DONE".format(dir=transient)
     run:
-        cmd = "cd {transient}/smt-dir-crawl &&  {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec"
+        cmd = "cd {transient}/smt-dir-crawl &&  {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec; sync;"
         shell(cmd)
 
 rule train_smt_with_crawl_data_create_config:
@@ -800,7 +803,7 @@ rule train_smt_all:
     output:
         report = "{dir}/smt-dir/steps/1/REPORTING_report.1.DONE".format(dir=transient)
     run:
-        cmd = "cd {transient}/smt-dir && {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec"
+        cmd = "cd {transient}/smt-dir && {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec; sync;"
         shell(cmd)
 
 rule train_smt_all_create_config:
@@ -899,7 +902,6 @@ rule httrack_download:
         '{PROFILING} nice ionice -c 3 {BITEXTOR}/bitextor-httrack.py --url {params.url} --output-path $DIRNAME {CRAWLTIMELIMIT} {CRAWLPAGELIMIT} {USERAGENT}; '
         '{PROFILING} nice ionice -c 3 {BITEXTOR}/bitextor-webdir2warc.sh $DIRNAME | nice ionice -c 3 xz -c -T 0 > {output}; '
         'rm -rf $DIRNAME;'
-    	'sync ; '
 
 rule ln_subdomains:
     input:
@@ -927,9 +929,9 @@ rule concat_subdomains:
     run:
         assert(len(input))
         if len(input) == 1:
-            cmd = "ln -s {input} {output}"
+            cmd = "ln -s {input} {output}; "
         else:
-            cmd = 'xzcat -T 0 {input} -f | xz -c -T 0 > {output}'
+            cmd = 'xzcat -T 0 {input} -f | xz -c -T 0 > {output}; sync;'
         shell(cmd)
 
 checkpoint split_warc:
@@ -956,7 +958,6 @@ rule warc2preprocess:
     priority: 8
     shell:
         #By removing the checkpoint every time, we ensure that rule split_warc will be re-run every time, which allows to resume the pipeline if this step breaks
-        'rm -rf {wildcards.dir}/checkpoint.flag;'
         'zcat {input} -f | {PROFILING} {BITEXTOR}/bitextor-warc2preprocess.py {boilerpipeCleaning} --output-dir {wildcards.dir} --prefix {wildcards.name}. --lang1 {LANG1} --lang2 {LANG2}; '
         'if [ "{boilerpipeCleaning}" == "" ]; then ln -s {output.html} {output.deboil}; fi'
 
@@ -1091,9 +1092,9 @@ rule aligndocumentsBitextor:
         '{dir}/plain_text.xz',
         '{dir}/url.xz'
     output:
-        '{dir}/docalign.bitextor'
+        '{dir}/docalign.bitextor.xz'
     shell:
-        '{PROFILING} {BITEXTOR}/bitextor-align-documents.py --text {input[2]} --url {input[3]} -n 1 -i converge -r /dev/null {input[0]} {input[1]} > {output}'
+        '{PROFILING} {BITEXTOR}/bitextor-align-documents.py --text {input[2]} --url {input[3]} -n 1 -i converge -r /dev/null {input[0]} {input[1]} | xz -T 0 > {output}'
 
 
 
@@ -1117,7 +1118,7 @@ rule docaling_deduped:
     output:
         temp("{dir}/{lang}.extracted.deduped.xz")
     shell:
-        "xzcat -T 0 {input}  | cut -d$'\t' -f 2 | sort | uniq | xz -c -T 0 > {output}"
+        "xzcat -T 0 {input}  | cut -d$'\t' -f 2 | sort -T {TMPDIR} --compress-program=gzip | uniq | xz -c -T 0 > {output}"
 
 rule docaling_translate_nmt:
     input:
@@ -1189,11 +1190,11 @@ rule aligndocumentsTrainedNMT:
         url='{dir}/url.xz',
         report="{transientdir}/nmt-dir/evaluation/report".format(transientdir=transient)
     output:
-        '{dir}/docalign.nmt'
+        '{dir}/docalign.nmt.xz'
 
     shell:
         'mkdir -p {wildcards.dir}/docalign; '
-        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} > {output}'
+        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} | xz -c -T 0 > {output}'
 
 rule aligndocumentsCustomMT:
     input:
@@ -1201,9 +1202,9 @@ rule aligndocumentsCustomMT:
         text='{dir}/plain_text.xz',
         url='{dir}/url.xz'
     output:
-        '{dir}/docalign.customMT'
+        '{dir}/docalign.customMT.xz'
     shell:
-        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} > {output}'
+        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} | xz -c -T 0 > {output}'
 
 rule aligndocumentsTrainedSMT:
     input:
@@ -1211,9 +1212,9 @@ rule aligndocumentsTrainedSMT:
         text='{dir}/plain_text.xz',
         url='{dir}/url.xz'
     output:
-        '{dir}/docalign.smt'
+        '{dir}/docalign.smt.xz'
     shell:
-        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} > {output}'
+        '{PROFILING} python3 {BITEXTOR}/document-aligner/build_docs.py --matches {input.matches} --plaintext {input.text} --url {input.url} --threshold {DOC_THRESHOLD} | xz -c -T 0 > {output}'
 
 #================================== SEGMENT ALIGNMENT ==================================#
 
@@ -1241,7 +1242,7 @@ rule hunaligndic:
 rule alignsegments_hunalign:
     input:
         '{transientdir}/hunalign_dic'.format(transientdir=transient),
-        "{dir}/docalign."+"{extension}".format(extension=DOCALIGNEXT)
+        "{dir}/docalign."+"{extension}".format(extension=DOCALIGNEXT)+".xz"
     output:
         '{dir}/hunalign.segalign.xz'
     shell:
@@ -1262,6 +1263,7 @@ rule alignsegments_bleualign:
                     with open_gzip_or_plain(filename) as sentFile:
                         for line in sentFile:
                             algFile.write(urls+"\t"+line)
+        os.sync()
 
 
 rule cleansegments:
@@ -1284,9 +1286,9 @@ rule bicleaner:
     shell:
         'slang=$(egrep "source_lang" {BICLEANER_CONFIG} | cut -d " " -f 2); '
         'if [ "$slang" == "{LANG1}" ]; then '
-        '  xzcat -T 0 -f {input.segclean} | {PROFILING} python3  {BITEXTOR}/bicleaner/bicleaner/bicleaner_classifier_lite.py --threshold {BICLEANER_THRESHOLD} - - {BICLEANER_CONFIG} | xz -T 0 > {output}; '
+        '  xzcat -T 0 -f {input.segclean} | {PROFILING} python3  {BITEXTOR}/bicleaner/bicleaner/bicleaner_classifier_lite.py -q --threshold {BICLEANER_THRESHOLD} - - {BICLEANER_CONFIG} | xz -T 0 > {output}; '
         'else '
-        '  xzcat -T 0 -f {input.segclean} | awk \' BEGIN {{FS="\t"; OFS="\t"}} {{ print $1 "\t" $2 "\t" $4 "\t" $3 "\t" $5}}\' | {PROFILING} python3  {BITEXTOR}/bicleaner/bicleaner/bicleaner_classifier_lite.py --threshold {BICLEANER_THRESHOLD} - - {BICLEANER_CONFIG}  | awk \' BEGIN {{FS="\t"; OFS=","}} {{ print $1 "\t" $2 "\t" $4 "\t" $3 "\t" $5 "\t" $6}}\' | xz -T 0 > {output}; '
+        '  xzcat -T 0 -f {input.segclean} | awk \' BEGIN {{FS="\t"; OFS="\t"}} {{ print $1 "\t" $2 "\t" $4 "\t" $3 "\t" $5}}\' | {PROFILING} python3  {BITEXTOR}/bicleaner/bicleaner/bicleaner_classifier_lite.py -q --threshold {BICLEANER_THRESHOLD} - - {BICLEANER_CONFIG}  | awk \' BEGIN {{FS="\t"; OFS=","}} {{ print $1 "\t" $2 "\t" $4 "\t" $3 "\t" $5 "\t" $6}}\' | xz -T 0 > {output}; '
         'fi'
 
 rule bicleanerfilter:
@@ -1327,7 +1329,7 @@ rule deduped_tmx:
     output:
         "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.deduped.tmx.xz"
     shell:
-        "xzcat -T 0 -f {input} | LC_ALL=C sort -t$'\t' {BICLEANER_SORT} --compress-program=gzip | {PROFILING} {BITEXTOR}/bitextor-buildTMX-dedup.py --lang1 {LANG1} --lang2 {LANG2} -c url1,url2,seg1,seg2,hunalign{BICLEANEROPTION}{ELRCFIELDS} | xz -T 0 > {output}"
+        "xzcat -T 0 -f {input} | LC_ALL=C sort -t$'\t' {BICLEANER_SORT} -T {TMPDIR} --compress-program=gzip | {PROFILING} {BITEXTOR}/bitextor-buildTMX-dedup.py --lang1 {LANG1} --lang2 {LANG2} -c url1,url2,seg1,seg2,hunalign{BICLEANEROPTION}{ELRCFIELDS} | xz -T 0 > {output}"
 
 rule mt_parallel_data:
     input:
@@ -1337,7 +1339,7 @@ rule mt_parallel_data:
          ,
          l2="{permanentdir}/crawl.{lang}".format(permanentdir=permanent, lang=LANG2)
     shell:
-         "xzcat -T 0 -f {input} | cut -f 3,4 | sort | uniq > corpus; "
+         "xzcat -T 0 -f {input} | cut -f 3,4 | sort -T {TMPDIR} --compress-program=gzip | uniq > corpus; "
          "cut -f 1 corpus > {output.l1} && cut -f 2 corpus > {output.l2}; "
          "rm corpus"
 
@@ -1421,7 +1423,7 @@ rule symmetrise_dic:
         t3s.close()
         t3t.close()
         dic.close()
-
+        os.sync()
 rule filter_dics:
     input:
         "{prefix}.vcb"

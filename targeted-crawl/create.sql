@@ -6,6 +6,7 @@ CREATE DATABASE paracrawl CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci';
 GRANT ALL PRIVILEGES ON paracrawl.* TO 'paracrawl_user'@'localhost';
 
 mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
+mysqldump -u paracrawl_user -pparacrawl_password --databases paracrawl | xz -c > db.xz
 */
 
 DROP TABLE IF EXISTS document;
