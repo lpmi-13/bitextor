@@ -117,4 +117,9 @@ for fileName in os.listdir(options.dir):
 
     transFile.close()
 
+    # doc align
+    cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input.l1} --lang2 {input.l2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
+    
+
+
     #exit()
