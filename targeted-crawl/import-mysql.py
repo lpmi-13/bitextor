@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# xzcat www.samsonite.be.xz | ./import-mysql.py  --out-dir out --lang1 en --lang2 fr
 
 #sudo pip3 install mysql-connector-python
 import mysql.connector
@@ -54,7 +55,7 @@ oparser.add_argument("--boilerpipe", action="store_true", default=False, help="U
 oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
 oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', default=None)
 oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', default=None)
-oparser.add_argument('--out-dir', dest='outDir', help='Output directory')
+oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
 options = oparser.parse_args()
 
 languages=[]
@@ -280,6 +281,8 @@ for record in f:
             with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
                 textFile.write(plaintext)
 
+# everything done
+# commit in case there's any hanging transactions
 mydb.commit()
 
 print("Finished")
