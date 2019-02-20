@@ -323,23 +323,27 @@ for record in f:
         for extractedLine in extractedLines:
             extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-    if lang != "fr":
-        continue
+    if lang == "fr":
+        # translate
+        transPath = options.outDir + "/" + str(docId) + ".trans.xz"
+        transFile = lzma.open(transPath, 'wt')
 
-    # translate
-    transPath = options.outDir + "/" + str(docId) + ".trans.xz"
-    transFile = lzma.open(transPath, 'wt')
+        for inLine in extractedLines:
+            # print("inLine", inLine)
+            inLine += "\n"
+            mtProc.stdin.write(inLine.encode('utf-8'))
+            mtProc.stdin.flush()
+            outLine = mtProc.stdout.readline()
+            outLine = outLine.decode("utf-8")
+            transFile.write(str(docId) + "\t" + outLine)
 
-    for inLine in extractedLines:
-        # print("inLine", inLine)
-        inLine += "\n"
-        mtProc.stdin.write(inLine.encode('utf-8'))
-        mtProc.stdin.flush()
-        outLine = mtProc.stdout.readline()
-        outLine = outLine.decode("utf-8")
-        transFile.write(str(docId) + "\t" + outLine)
+        transFile.close()
 
-    transFile.close()
+    # doc align
+    cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input.l1} --lang2 {input.l2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
+
+
+
 
 # everything done
 # commit in case there's any hanging transactions
