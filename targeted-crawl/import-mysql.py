@@ -340,7 +340,22 @@ for record in f:
         transFile.close()
 
     # doc align
-    cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input.l1} --lang2 {input.l2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
+    if lang == "en":
+        otherLang = "fr"
+    else:
+        otherLang = "en"
+
+    sql = "SELECT id FROM document WHERE lang=%s"
+    val = (otherLang,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    print("res", res)
+
+    for rec in res:
+        otherDocId = rec[0]
+        print("other doc id", otherDocId)
+
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input1} --lang2 {input2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(input1=, input2=, output=, DOC_THRESHOLD=0.2, WORDTOK1="")
 
 
 
