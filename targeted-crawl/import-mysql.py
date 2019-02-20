@@ -17,6 +17,7 @@ import base64
 import html
 import lzma
 import urllib
+import subprocess
 import pycld2 as cld2
 from lxml.html.clean import Cleaner
 from lxml import etree
@@ -82,6 +83,13 @@ mycursor = mydb.cursor()
 f = warc.WARCFile(fileobj=sys.stdin.buffer)
 seen_md5={}
 magic.Magic(mime=True)
+
+mtProc = subprocess.Popen(["/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/targeted-crawl/translate-smt.sh",
+                         "fr",
+                         "/home/hieu/workspace/github/mosesdecoder",
+                         "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
+                         ],
+                        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
 numPages = 0
 for record in f:
@@ -187,6 +195,7 @@ for record in f:
         plaintext = re.sub(r"\n+","\n",re.sub(r" *\n *","\n",re.sub(r" +"," ",re.sub(r"\r","", plaintext))))
 
     if len(plaintext) == 0:
+        # empty doc. Should we still go thru links anyway?
         continue
 
     #Guessing MIME of the file (checked on original content)
@@ -275,7 +284,7 @@ for record in f:
             val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
             mycursor.execute(sql, val)
 
-    # write files
+    # write html and text files
     filePrefix = options.outDir + "/" + str(docId)
 
     with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
@@ -284,6 +293,53 @@ for record in f:
         normHtmlFile.write(norm_html.decode("utf-8"))
     with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
         textFile.write(plaintext)
+
+    # split
+    inLines = plaintext.split("\n")
+    if len(inLines[-1]) == 0:
+        del inLines[-1]
+
+    extractedLines = []
+    for inLine in inLines:
+        #print("inLine", inLine)
+        #inLine += "\n"
+
+        frSplitProc = subprocess.Popen(
+            ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
+             "-b",
+             "-l", "fr"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
+
+        splittedLines = cout.decode("utf-8")
+        splittedLines = splittedLines[0:-1].split("\n")
+        #print("splittedLines", inLine, splittedLines)
+        extractedLines += splittedLines
+
+    # write splitted file
+    extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
+    with lzma.open(extractPath, 'wt') as extractFile:
+        for extractedLine in extractedLines:
+            extractFile.write(extractedLine + "\n")
+
+    if lang != "fr":
+        continue
+
+    # translate
+    transPath = options.outDir + "/" + str(docId) + ".trans.xz"
+    transFile = lzma.open(transPath, 'wt')
+
+    for inLine in extractedLines:
+        # print("inLine", inLine)
+        inLine += "\n"
+        mtProc.stdin.write(inLine.encode('utf-8'))
+        mtProc.stdin.flush()
+        outLine = mtProc.stdout.readline()
+        outLine = outLine.decode("utf-8")
+        transFile.write(outLine)
+
+    transFile.close()
 
 # everything done
 # commit in case there's any hanging transactions
