@@ -321,7 +321,7 @@ for record in f:
     extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
     with lzma.open(extractPath, 'wt') as extractFile:
         for extractedLine in extractedLines:
-            extractFile.write(extractedLine + "\n")
+            extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
     if lang != "fr":
         continue
@@ -337,7 +337,7 @@ for record in f:
         mtProc.stdin.flush()
         outLine = mtProc.stdout.readline()
         outLine = outLine.decode("utf-8")
-        transFile.write(outLine)
+        transFile.write(str(docId) + "\t" + outLine)
 
     transFile.close()
 
