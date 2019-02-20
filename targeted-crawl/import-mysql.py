@@ -163,123 +163,127 @@ for record in f:
             #print("url1", pageURL)
             val = (pageURL, int(docId))
             mycursor.execute(sql, val)
-    else:
-        #If enabled get text with Alcazar library
-        if options.alcazar:
-            btext = alcazar.bodytext.parse_article(cleantree)
-            if btext.body_text:
-                plaintext = btext.body_text
-            else:
-                plaintext = ""
-        #Otherwise use beautifulsoup
+
+        continue
+
+    # new doc
+    if options.alcazar:
+        # get text with Alcazar library
+        btext = alcazar.bodytext.parse_article(cleantree)
+        if btext.body_text:
+            plaintext = btext.body_text
         else:
-            if options.boilerpipe:
-                soup = BeautifulSoup(deboiled, "lxml")
+            plaintext = ""
+    else:
+        # use beautifulsoup
+        if options.boilerpipe:
+            soup = BeautifulSoup(deboiled, "lxml")
+        else:
+            soup = BeautifulSoup(cleantree, "lxml")
+        for script in soup(["script", "style", "img"]):
+            script.extract()    # rip it out
+
+        plaintext = soup.get_text()
+        plaintext = re.sub(r"\n+","\n",re.sub(r" *\n *","\n",re.sub(r" +"," ",re.sub(r"\r","", plaintext))))
+
+    if len(plaintext) == 0:
+        continue
+
+    #Guessing MIME of the file (checked on original content)
+    mime=magic.from_buffer(html_text, mime=True)
+    #mimeFile.write(mime.encode()+b"\n")
+
+    #urlFile.write(url.encode()+b"\n")
+    #langFile.write(lang.encode()+b"\n")
+    #encodingFile.write(orig_encoding.encode()+b"\n")
+
+    norm_html = cleantree.encode()
+    b64norm=base64.b64encode(norm_html)
+    #normHtmlFile.write(b64norm+b"\n")
+
+    if options.boilerpipe:
+        b64deboil=base64.b64encode(deboiled.encode())
+        #deboilFile.write(b64deboil+b"\n")
+
+    b64text=base64.b64encode(html.unescape(plaintext).encode())
+    #plainTextFile.write(b64text+b"\n")
+    #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
+
+    sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
+    val = (mime, lang, hash)
+    #print("val", type(val))
+    mycursor.execute(sql, val)
+    docId = mycursor.lastrowid
+
+    sql = "SELECT id, document_id FROM url WHERE val = %s"
+    val = (pageURL, )
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is not None:
+        # url exists
+        assert(res[1] == None)
+        sql = "UPDATE url SET document_id = %s WHERE val = %s"
+        val = (int(docId), pageURL)
+        mycursor.execute(sql, val)
+    else:
+        sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
+        #print("url1", pageURL)
+        val = (pageURL, int(docId))
+        mycursor.execute(sql, val)
+    #print(html_text)
+
+    # links
+    soup = BeautifulSoup(html_text, features="lxml")
+    for link in soup.findAll('a'):
+        url = link.get('href')
+
+        if url is not None:
+            linkStr = link.string
+
+            url = urllib.parse.unquote(url)
+            url = urllib.parse.urljoin(pageURL, url)
+            url = strip_scheme(url)
+            #print("url3", url)
+
+            imgURL = link.find('img')
+            if imgURL:
+                imgURL = imgURL.get('src')
             else:
-                soup = BeautifulSoup(cleantree, "lxml")
-            for script in soup(["script", "style", "img"]):
-                script.extract()    # rip it out
+                imgURL = None
 
-            plaintext = soup.get_text()
-            plaintext = re.sub(r"\n+","\n",re.sub(r" *\n *","\n",re.sub(r" +"," ",re.sub(r"\r","", plaintext))))
+            #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
 
-        if len(plaintext) > 0:
-            #Guessing MIME of the file (checked on original content)
-            mime=magic.from_buffer(html_text, mime=True)
-            #mimeFile.write(mime.encode()+b"\n")
-
-            #urlFile.write(url.encode()+b"\n")
-            #langFile.write(lang.encode()+b"\n")
-            #encodingFile.write(orig_encoding.encode()+b"\n")
-
-            norm_html = cleantree.encode()
-            b64norm=base64.b64encode(norm_html)
-            #normHtmlFile.write(b64norm+b"\n")
-
-            if options.boilerpipe:
-                b64deboil=base64.b64encode(deboiled.encode())
-                #deboilFile.write(b64deboil+b"\n")
-
-            b64text=base64.b64encode(html.unescape(plaintext).encode())
-            #plainTextFile.write(b64text+b"\n")
-            #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
-
-            sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
-            val = (mime, lang, hash)
-            #print("val", type(val))
-            mycursor.execute(sql, val)
-            docId = mycursor.lastrowid
-
-            sql = "SELECT id, document_id FROM url WHERE val = %s"
-            val = (pageURL, )
+            # does url already exist?
+            sql = "SELECT id FROM url WHERE val = %s"
+            val = (url, )
             mycursor.execute(sql, val)
             res = mycursor.fetchone()
+            #print("res", res, hash, url)
 
-            if res is not None:
-                # url exists
-                assert(res[1] == None)
-                sql = "UPDATE url SET document_id = %s WHERE val = %s"
-                val = (int(docId), pageURL)
-                mycursor.execute(sql, val)
+            if (res is not None):
+                urlId = res[0]
             else:
-                sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-                #print("url1", pageURL)
-                val = (pageURL, int(docId))
+                sql = "INSERT INTO url(val) VALUES(%s)"
+                val = (url, )
                 mycursor.execute(sql, val)
+                urlId = mycursor.lastrowid
 
+            #print("urlId", urlId)
 
-            # links
-            #print(html_text)
-            soup = BeautifulSoup(html_text, features="lxml")
-            for link in soup.findAll('a'):
-                url = link.get('href')
+            sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
+            val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
+            mycursor.execute(sql, val)
 
-                if url is not None:
-                    linkStr = link.string
+    # write files
+    filePrefix = options.outDir + "/" + str(docId)
 
-                    url = urllib.parse.unquote(url)
-                    url = urllib.parse.urljoin(pageURL, url)
-                    url = strip_scheme(url)
-                    #print("url3", url)
-
-                    imgURL = link.find('img')
-                    if imgURL:
-                        imgURL = imgURL.get('src')
-                    else:
-                        imgURL = None
-
-                    #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-
-                    # does url already exist?
-                    sql = "SELECT id FROM url WHERE val = %s"
-                    val = (url, )
-                    mycursor.execute(sql, val)
-                    res = mycursor.fetchone()
-                    #print("res", res, hash, url)
-
-                    if (res is not None):
-                        urlId = res[0]
-                    else:
-                        sql = "INSERT INTO url(val) VALUES(%s)"
-                        val = (url, )
-                        mycursor.execute(sql, val)
-                        urlId = mycursor.lastrowid
-
-                    #print("urlId", urlId)
-
-                    sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-                    val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
-                    mycursor.execute(sql, val)
-
-            # write files
-            filePrefix = options.outDir + "/" + str(docId)
-
-            with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-                htmlFile.write(html_text)
-            with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
-                normHtmlFile.write(norm_html.decode("utf-8"))
-            with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
-                textFile.write(plaintext)
+    with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
+        htmlFile.write(html_text)
+    with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
+        normHtmlFile.write(norm_html.decode("utf-8"))
+    with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
+        textFile.write(plaintext)
 
 # everything done
 # commit in case there's any hanging transactions
