@@ -1090,8 +1090,16 @@ rule sents:
         expand("{dir}/{webdomain}/{aligner}.{ext}.xz", dir=config["transientDir"], webdomain=domain_2_fulldomains.keys(), aligner=SEGMENTALIGNER, ext={ELRCSCORES})
     output:
         "{dir}".format(dir=config["permanentDir"])+"/{l1}-{l2}.sent.xz"
-    shell:
-        "xzcat -T 0 {input} | xz -T 0 > {output}"
+    run:
+      import lzma
+      with lzma.open(output[0], "wt") as out:
+        for f in input:
+          with lzma.open(f, "rt") as ifh:
+            for line in ifh:
+              print(line, file=out, end="")
+    #shell:
+        #"rm -f {output}; for f in {input}; do xzcat -T 0 $f >> {output}; done"
+        #"xzcat -T 0 {input} | xz -T 0 > {output}"
 
 rule tmx:
     input:

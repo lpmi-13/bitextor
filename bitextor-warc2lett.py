@@ -117,67 +117,60 @@ for record in f:
         sys.stderr.write("Failed to detect encoding: " + record.url + "\n")
         sys.stderr.flush()
         continue
-    except UnicodeDecodeError:
-      sys.stderr.write("Unicode error: " + record.url + "\n")
-      sys.stderr.flush()
-      continue
- 
-    # lang id
-    lang = guess_lang_from_data2(html)
-    if not lang in langs:
-      continue
-    
-        
-    encoded_html = html.encode("utf8")
-
-    # Need the following fields:
-    # - language
-    # - mimencoding (2 fields)
-    # - url 
-    # - filename?
-    # - text
-    # - deboiled html
-
-    #We compute MD5 signature to compare files and detect duplicates
-    c = hashlib.md5()
-    c.update(encoded_html)
-    hexdigest = c.hexdigest()
-    if hexdigest in seen_md5:
-      continue
-
-    seen_md5[hexdigest] = True
-
-    # normalize html
-    cleaner=Cleaner(style=True, links=True, add_nofollow=True,page_structure=False, safe_attrs_only=False)
-    try:
-      cleanhtml = cleaner.clean_html(re.sub(r'encoding *= *"[^"]+"', '', html, flags=re.IGNORECASE))
-    except ParserError:
-      sys.stderr.write("lxml parse error: " + record.url + "\n")
-      continue
-    document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
-    tree = etree.tostring(document)
-    cleantree = tree.decode("utf8")
-    cleantree = cleantree.replace("\t", " ")
-
-    extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
-    deboiled_text = extractor.getHTML()
-
-
-    # Mime
-    m.setflags(16|1024)
-    mimeEncode = m.buffer(encoded_html).split(" ")
-    mimeEncode[0] = mimeEncode[0][:-1]
-
-    # Text
-    text = alcazar.bodytext.parse_article(cleantree)
-    if text.body_text:
-      text = text.body_text
-    else:
-      text = ""
- 
+   
+      # lang id
+      lang = guess_lang_from_data2(html)
+      if not lang in langs:
+        continue
       
-    encoded_html = base64.b64encode(deboiled_text.encode('utf8')).decode("utf8")
-    encoded_text = base64.b64encode(text.encode("utf8")).decode("utf8")
-    print("\t".join([lang,mimeEncode[0],mimeEncode[1],record.url,encoded_html,encoded_text]))
+          
+      encoded_html = html.encode("utf8")
+
+      # Need the following fields:
+      # - language
+      # - mimencoding (2 fields)
+      # - url 
+      # - filename?
+      # - text
+      # - deboiled html
+
+      #We compute MD5 signature to compare files and detect duplicates
+      c = hashlib.md5()
+      c.update(encoded_html)
+      hexdigest = c.hexdigest()
+      if hexdigest in seen_md5:
+        continue
+
+      seen_md5[hexdigest] = True
+
+      # normalize html
+      cleaner=Cleaner(style=True, links=True, add_nofollow=True,page_structure=False, safe_attrs_only=False)
+      cleanhtml = cleaner.clean_html(re.sub(r'encoding *= *"[^"]+"', '', html, flags=re.IGNORECASE))
+      document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
+      tree = etree.tostring(document)
+      cleantree = tree.decode("utf8")
+      cleantree = cleantree.replace("\t", " ")
+
+      extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
+      deboiled_text = extractor.getHTML()
 
 
+      # Mime
+      m.setflags(16|1024)
+      mimeEncode = m.buffer(encoded_html).split(" ")
+      mimeEncode[0] = mimeEncode[0][:-1]
+
+      # Text
+      text = alcazar.bodytext.parse_article(cleantree)
+      if text.body_text:
+        text = text.body_text
+      else:
+        text = ""
+   
+      
+      encoded_html = base64.b64encode(deboiled_text.encode('utf8')).decode("utf8")
+      encoded_text = base64.b64encode(text.encode("utf8")).decode("utf8")
+      print("\t".join([lang,mimeEncode[0],mimeEncode[1],record.url,encoded_html,encoded_text]))
+    except:
+      sys.stderr.write("Failed to process " + record.url + "\n")
+      sys.stderr.flush()
