@@ -7,6 +7,8 @@ GRANT ALL PRIVILEGES ON paracrawl.* TO 'paracrawl_user'@'localhost';
 
 mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
 mysqldump -u paracrawl_user -pparacrawl_password --databases paracrawl | xz -c > db.xz
+xzcat db.xz | mysql -u paracrawl_user -pparacrawl_password -Dparacrawl
+
 */
 
 DROP TABLE IF EXISTS document;
