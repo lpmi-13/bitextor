@@ -9,7 +9,6 @@ import tldextract
 import os
 import os.path
 import socket
-import shutil
 from tld import get_tld
 from tqdm import tqdm
 from collections import defaultdict
@@ -142,7 +141,6 @@ def ValidateArgs(config):
 
            'nmt': {'type': 'boolean'},
            'smt': {'type': 'boolean'},
-           'storeRawCorpus': {'type': 'boolean'},
            'tmx': {'type': 'boolean'},
 
            'gpuId': {'type': 'integer'},
@@ -743,7 +741,7 @@ else:
     #Optional TMX: if option enabled, TMX is generated; otherwhise, tab-separated .sent file is generated
     if "tmx" in config and config["tmx"]:
         if "storeRawCorpus" in config and config["storeRawCorpus"]:
-            OUTPUT.append("{dir}/{l1}-{l2}.raw.xz".format(dir=permanent, l1=LANG1, l2=LANG2))
+            OUTPUT.append("{dir}/{l1}-{l2}.sent.xz".format(dir=permanent, l1=LANG1, l2=LANG2))
         if "deduped" in config and config["deduped"]:
             OUTPUT.append("{dir}/{l1}-{l2}.deduped.tmx.xz".format(dir=permanent, l1=LANG1, l2=LANG2))
         else:
@@ -926,9 +924,47 @@ rule concat_subdomains:
             cmd = 'xzcat -T 0 {input} -f | xz -c -T 0 > {output}; '
         shell(cmd)
 
+checkpoint split_warc:
+    input:
+        "{dir}/concat.warc.xz"
+    output:
+        "{dir}/concat.warc.split/checkpoint.flag"
+    shell:
+        'mkdir -p {wildcards.dir}/concat.warc.split; '
+        'xzcat {input} | {PROFILING} {BITEXTOR}/bitextor-splitWARC.py {MAXWARCSIZE} -o {wildcards.dir}/concat.warc.split; '
+        'touch {wildcards.dir}/concat.warc.split/checkpoint.flag'
+
 rule warc2preprocess:
     input:
-        '{dir}/concat.warc.xz'
+        '{dir}/{name}.warc.gz'
+    output:
+        deboil='{dir}/{name}.deboilerplate_html.xz',
+        encoding='{dir}/{name}.encoding.xz',
+        lang='{dir}/{name}.lang.xz',
+        mime='{dir}/{name}.mime.xz',
+        html='{dir}/{name}.normalized_html.xz',
+        text='{dir}/{name}.plain_text.xz',
+        url='{dir}/{name}.url.xz'
+    priority: 8
+    shell:
+        #By removing the checkpoint every time, we ensure that rule split_warc will be re-run every time, which allows to resume the pipeline if this step breaks
+        'zcat {input} -f | {PROFILING} {BITEXTOR}/bitextor-warc2preprocess.py {boilerpipeCleaning} --output-dir {wildcards.dir} --prefix {wildcards.name}. --lang1 {LANG1} --lang2 {LANG2}; '
+        'if [ "{boilerpipeCleaning}" == "" ]; then ln -s {output.html} {output.deboil}; fi'
+
+def input_files(wildcards):
+    checkpoint_output = checkpoints.split_warc.get(**wildcards).output[0]
+    output = []
+    file_types = ['deboilerplate_html','encoding','lang','mime','normalized_html','plain_text','url']
+    for contenttype in file_types:
+        output.extend(expand("{dir}/concat.warc.split/{i}.{contenttype}.xz",
+               dir=wildcards.dir,
+               contenttype=contenttype,
+               i=glob_wildcards(os.path.join(wildcards.dir+"/concat.warc.split", "{i}.warc.gz")).i))
+    return output
+
+rule recompound_preprocess:
+    input:
+        input_files
     output:
         deboil='{dir}/deboilerplate_html.xz',
         encoding='{dir}/encoding.xz',
@@ -937,11 +973,16 @@ rule warc2preprocess:
         html='{dir}/normalized_html.xz',
         text='{dir}/plain_text.xz',
         url='{dir}/url.xz'
-    priority: 8
     shell:
-        #By removing the checkpoint every time, we ensure that rule split_warc will be re-run every time, which allows to resume the pipeline if this step breaks
-        'xzcat {input} -f | {PROFILING} {BITEXTOR}/bitextor-warc2preprocess.py {boilerpipeCleaning} --output-dir {wildcards.dir} --lang1 {LANG1} --lang2 {LANG2}; '
-        'if [ "{boilerpipeCleaning}" == "" ]; then ln -s {output.html} {output.deboil}; fi'
+        'xzcat {wildcards.dir}/concat.warc.split/*.deboilerplate_html.xz | xz > {output.deboil}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.encoding.xz | xz > {output.encoding}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.lang.xz | xz > {output.lang}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.mime.xz | xz > {output.mime}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.normalized_html.xz | xz > {output.html}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.plain_text.xz | xz > {output.text}; '
+        'xzcat {wildcards.dir}/concat.warc.split/*.url.xz | xz > {output.url}; '
+        'rm -rf {wildcards.dir}/concat.warc.split; '
+
 
 #================================== DICTIONARY-BASED DOCUMENT ALIGNMENT ==================================#
 rule lettr2idx:
@@ -1256,33 +1297,17 @@ rule elrc:
     shell:
         'xzcat -T 0 -f {input} | {PROFILING} {BITEXTOR}/bitextor-elrc-filtering.py -c "url1,url2,seg1,seg2,hunalign{BICLEANEROPTION}" -s | xz -T 0 > {output}'
 
-rule raw:
-    input:
-        expand("{dir}/{webdomain}/{aligner}.bicleaner.scores.xz", dir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER)
-    output:
-        "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.raw.xz"
-    run:
-        #Original command ("xzcat -T 0 {input} | xz -T 0 > {output}") replaced to be able to deal with any number of inputs
-        with open(output[0],'wb') as wfd:
-            for f in input:
-                with open(f,'rb') as fd:
-                    shutil.copyfileobj(fd, wfd, 1024*1024*10)
-
 rule sents:
     input:
         expand("{dir}/{webdomain}/{aligner}.{ext}.xz", dir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER, ext={ELRCSCORES})
     output:
         "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.sent.xz"
-    run:
-        #Original command ("xzcat -T 0 {input} | xz -T 0 > {output}") replaced to be able to deal with any number of inputs
-        with open(output[0],'wb') as wfd:
-            for f in input:
-                with open(f,'rb') as fd:
-                    shutil.copyfileobj(fd, wfd, 1024*1024*10)
+    shell:
+        "xzcat -T 0 {input} | xz -T 0 > {output}"
 
 rule tmx:
     input:
-        "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.sent.xz"
+        expand("{transientdir}/{webdomain}/{aligner}.{ext}.xz", transientdir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER, ext={ELRCSCORES})
     output:
         "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.not-deduped.tmx.xz"
     shell:
