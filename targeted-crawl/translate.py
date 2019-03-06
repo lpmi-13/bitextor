@@ -118,7 +118,10 @@ for fileName in os.listdir(options.dir):
     transFile.close()
 
     # doc align
-    cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input.l1} --lang2 {input.l2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
+    for enId in [1, 2, 3]:
+        inputL1 = "{docId}.trans.xz".format(docId=fileId)
+        inputL2 = "{docId}.text.xz".format(docId=endId)
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {inputL1} --lang2 {inputL2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
 
 
 
