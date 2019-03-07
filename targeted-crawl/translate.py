@@ -121,7 +121,7 @@ for fileName in os.listdir(options.dir):
     # doc align
     for enId in [1, 2, 3]:
         inputL1 = "{docId}.trans.xz".format(docId=fileId)
-        inputL2 = "{docId}.text.xz".format(docId=endId)
+        inputL2 = "{docId}.text.xz".format(docId=enId)
         cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {inputL1} --lang2 {inputL2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'"
 
 
