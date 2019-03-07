@@ -18,6 +18,7 @@ def systemCheck(cmd):
 
 oparser = argparse.ArgumentParser(description="Hello")
 oparser.add_argument('--dir', dest='dir', help='Data directory', required=True)
+oparser.add_argument('--lang', dest='lang', help='Language, other than English', required=True)
 options = oparser.parse_args()
 
 mydb = mysql.connector.connect(
@@ -33,7 +34,7 @@ mycursor = mydb.cursor()
 # cmd = "xzcat " + txtPath + " | ~/workspace/github/mosesdecoder/bin/moses2 -f /home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
 # systemCheck(cmd)
 mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
-                         "fr"
+                         options.lang,
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
@@ -44,6 +45,7 @@ enSplitProc = subprocess.Popen(["/home/hieu/workspace/github/mosesdecoder/script
 
 
 for fileName in os.listdir(options.dir):
+    #print("fileName", fileName)
     if fileName[-8:] != ".text.xz":
         continue
 
@@ -60,8 +62,9 @@ for fileName in os.listdir(options.dir):
     res = mycursor.fetchone()
     assert(res != None)
     lang = res[0]
+    #print("lang", lang)
 
-    if lang not in ["en", "fr"]:
+    if lang not in ["en", options.lang]:
         continue
 
     # read input
@@ -82,7 +85,7 @@ for fileName in os.listdir(options.dir):
         frSplitProc = subprocess.Popen(
             ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
              "-b",
-             "-l", "fr"],
+             "-l", options.lang],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
@@ -97,7 +100,7 @@ for fileName in os.listdir(options.dir):
         for extractedLine in extractedLines:
             extractFile.write(extractedLine + "\n")
 
-    if lang != "fr":
+    if lang != options.lang:
         continue
 
     # translate
