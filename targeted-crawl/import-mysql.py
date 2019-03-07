@@ -278,7 +278,13 @@ for record in f:
             #print("urlId", urlId)
 
             sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-            val =(str(linkStr), "hover here", str(imgURL), int(docId), int(urlId))
+
+            if linkStr is not None:
+                linkStr = str(linkStr)
+            if imgURL is not None:
+                imgURL = str(imgURL)
+
+            val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
             mycursor.execute(sql, val)
 
     # write html and text files
