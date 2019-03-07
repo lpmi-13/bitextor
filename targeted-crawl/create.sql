@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS link
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     text VARCHAR(255),
+    text_en VARCHAR(255),
     hover VARCHAR(255),
     image_url VARCHAR(255),
     document_id INT REFERENCES document(id),

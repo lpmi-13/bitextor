@@ -84,13 +84,10 @@ f = warc.WARCFile(fileobj=sys.stdin.buffer)
 seen_md5={}
 magic.Magic(mime=True)
 
-mtProc = subprocess.Popen(["/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/targeted-crawl/translate-smt.sh",
-                         "fr",
-                         "/home/hieu/workspace/github/mosesdecoder",
-                         "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
+mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
+                         "fr"
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-
 numPages = 0
 for record in f:
     numPages += 1
@@ -349,13 +346,13 @@ for record in f:
     val = (otherLang,)
     mycursor.execute(sql, val)
     res = mycursor.fetchall()
-    print("res", res)
+    #print("res", res)
 
     for rec in res:
         otherDocId = rec[0]
-        print("other doc id", otherDocId)
+        #print("other doc id", otherDocId)
 
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input1} --lang2 {input2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(input1=, input2=, output=, DOC_THRESHOLD=0.2, WORDTOK1="")
+        #cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input1} --lang2 {input2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(input1=, input2=, output=, DOC_THRESHOLD=0.2, WORDTOK1="")
 
 
 

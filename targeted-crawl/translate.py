@@ -32,10 +32,8 @@ mycursor = mydb.cursor()
 
 # cmd = "xzcat " + txtPath + " | ~/workspace/github/mosesdecoder/bin/moses2 -f /home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
 # systemCheck(cmd)
-mtProc = subprocess.Popen(["/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/targeted-crawl/translate-smt.sh",
-                         "fr",
-                         "/home/hieu/workspace/github/mosesdecoder",
-                         "/home/hieu/workspace/experiment/issues/paracrawl/fr-en/smt-dir/model/moses.bin.ini.1"
+mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
+                         "fr"
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
