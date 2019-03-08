@@ -248,8 +248,21 @@ for record in f:
             linkStr = link.string
             if linkStr is not None:
                 linkStr = str(linkStr)
+                linkStr = linkStr.replace('\n', ' ')
 
                 # translate. Assume 1 sentence
+                if lang == options.l2:
+                    tempStr = linkStr + "\n"
+                    mtProc.stdin.write(tempStr.encode('utf-8'))
+                    mtProc.stdin.flush()
+                    linkStrTrans = mtProc.stdout.readline()
+                    linkStrTrans = linkStrTrans.decode("utf-8")
+                    linkStrTrans = linkStrTrans.strip("\n")
+                    #print("linkStr", linkStr, "|||", linkStrTrans)
+                else:
+                    linkStrTrans = linkStr
+            else:
+                linkStrTrans = None
 
             url = urllib.parse.unquote(url)
             url = urllib.parse.urljoin(pageURL, url)
@@ -284,9 +297,9 @@ for record in f:
 
             #print("urlId", urlId)
 
-            sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
+            sql = "INSERT INTO link(text, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s)"
 
-            val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
+            val =(linkStr, linkStrTrans, "hover here", imgURL, int(docId), int(urlId))
             mycursor.execute(sql, val)
 
     # write html and text files
