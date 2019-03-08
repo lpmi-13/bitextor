@@ -54,8 +54,8 @@ print("Starting")
 oparser = argparse.ArgumentParser(description="Script that takes every record in a WARC file and runs preprocessing, which includes: HTML normalization, deduplication, MIME and language identification, and boilerplate removing. The result of each pre-processing step is stored in a XZ compressed file in the output directory.")
 oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
 oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
-oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', default=None)
-oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', default=None)
+oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', required=True)
+oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', required=True)
 oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
 options = oparser.parse_args()
 
@@ -85,7 +85,7 @@ seen_md5={}
 magic.Magic(mime=True)
 
 mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
-                         "fr"
+                         options.l2
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 numPages = 0
@@ -310,7 +310,7 @@ for record in f:
         frSplitProc = subprocess.Popen(
             ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
              "-b",
-             "-l", "fr"],
+             "-l", options.l2],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
@@ -326,7 +326,7 @@ for record in f:
         for extractedLine in extractedLines:
             extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-    if lang == "fr":
+    if lang == options.l2:
         # translate
         transPath = options.outDir + "/" + str(docId) + ".trans.xz"
         transFile = lzma.open(transPath, 'wt')
@@ -343,10 +343,10 @@ for record in f:
         transFile.close()
 
     # doc align
-    if lang == "en":
-        otherLang = "fr"
+    if lang == options.l1:
+        otherLang = options.l2
     else:
-        otherLang = "en"
+        otherLang = options.l1
 
     sql = "SELECT id FROM document WHERE lang=%s"
     val = (otherLang,)
