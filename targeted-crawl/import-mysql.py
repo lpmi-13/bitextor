@@ -246,6 +246,10 @@ for record in f:
 
         if url is not None:
             linkStr = link.string
+            if linkStr is not None:
+                linkStr = str(linkStr)
+
+                # translate. Assume 1 sentence
 
             url = urllib.parse.unquote(url)
             url = urllib.parse.urljoin(pageURL, url)
@@ -254,7 +258,10 @@ for record in f:
 
             imgURL = link.find('img')
             if imgURL:
+                #print("imgURL", imgURL)
                 imgURL = imgURL.get('src')
+                if imgURL is not None:
+                    imgURL = str(imgURL)
             else:
                 imgURL = None
 
@@ -278,11 +285,6 @@ for record in f:
             #print("urlId", urlId)
 
             sql = "INSERT INTO link(text, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s)"
-
-            if linkStr is not None:
-                linkStr = str(linkStr)
-            if imgURL is not None:
-                imgURL = str(imgURL)
 
             val =(linkStr, "hover here", imgURL, int(docId), int(urlId))
             mycursor.execute(sql, val)
