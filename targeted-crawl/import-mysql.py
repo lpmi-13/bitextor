@@ -91,8 +91,8 @@ mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi
 numPages = 0
 for record in f:
     numPages += 1
-    if numPages % 100 == 0:
-        print("write", numPages)
+    if numPages % 1 == 0:
+        #print("write", numPages)
         mydb.commit()
 
     #We convert into UTF8 first of all
