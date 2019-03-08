@@ -369,13 +369,21 @@ for record in f:
     res = mycursor.fetchall()
     #print("res", res)
 
+    tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
+
     for rec in res:
         otherDocId = rec[0]
         print("other doc id", docId, otherDocId, lang, otherLang)
 
-        tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=options.l1, lang2=options.l2, output="matches", DOC_THRESHOLD=0.2, WORDTOK1=tok1)
-        #print("cmd", cmd)
+        if lang == options.l1:
+            doc1 = transPath
+            doc2 = "{outDir}/{docId}.{lang}.extracted.xz".format(outDir=options.outDir, docId=otherDocId, lang=options.l2)
+        else:
+            doc1 = "{outDir}/{docId}.trans.xz".format(outDir=options.outDir, docId=otherDocId)
+            doc2 = extractPath
+
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output="matches", DOC_THRESHOLD=0.2, WORDTOK1=tok1)
+        print("cmd", cmd)
 
 
 
