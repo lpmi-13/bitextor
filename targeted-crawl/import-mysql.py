@@ -85,7 +85,7 @@ seen_md5={}
 magic.Magic(mime=True)
 
 mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
-                         options.l2
+                         options.l1
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 numPages = 0
@@ -250,8 +250,8 @@ for record in f:
                 linkStr = str(linkStr)
                 linkStr = linkStr.replace('\n', ' ')
 
-                # translate. Assume 1 sentence
-                if lang == options.l2:
+                # translate. Must be 1 sentence
+                if lang == options.l1:
                     tempStr = linkStr + "\n"
                     mtProc.stdin.write(tempStr.encode('utf-8'))
                     mtProc.stdin.flush()
@@ -325,7 +325,7 @@ for record in f:
         frSplitProc = subprocess.Popen(
             ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
              "-b",
-             "-l", options.l2],
+             "-l", options.l1],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
@@ -341,7 +341,7 @@ for record in f:
         for extractedLine in extractedLines:
             extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-    if lang == options.l2:
+    if lang == options.l1:
         # translate
         transPath = options.outDir + "/" + str(docId) + ".trans.xz"
         transFile = lzma.open(transPath, 'wt')
@@ -373,7 +373,7 @@ for record in f:
         otherDocId = rec[0]
         #print("other doc id", otherDocId)
 
-        #cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {input1} --lang2 {input2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(input1=, input2=, output=, DOC_THRESHOLD=0.2, WORDTOK1="")
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=options.lang1, lang2=options.lang2, output="matches", DOC_THRESHOLD=0.2, WORDTOK1="")
 
 
 
