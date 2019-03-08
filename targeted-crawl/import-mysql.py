@@ -371,9 +371,11 @@ for record in f:
 
     for rec in res:
         otherDocId = rec[0]
-        #print("other doc id", otherDocId)
+        print("other doc id", docId, otherDocId, lang, otherLang)
 
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=options.lang1, lang2=options.lang2, output="matches", DOC_THRESHOLD=0.2, WORDTOK1="")
+        tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=options.l1, lang2=options.l2, output="matches", DOC_THRESHOLD=0.2, WORDTOK1=tok1)
+        #print("cmd", cmd)
 
 
 
