@@ -159,8 +159,7 @@ def ValidateArgs(config):
 
     if "httrack" in config and config["httrack"] == True:
         if not binaryAvailable("httrack"):
-            sys.stderr.write("HTTrack is not installed. Install it or disable option 'httrack' in the configuration file.\n")
-            exit(-1)
+            sys.stderr.write("WARNING: HTTrack is not installed. Install it or disable option 'httrack' in the configuration file.\n")
 
     config.update({k: os.path.expanduser(v) if isinstance(v, str) else v for k, v in config.items()})
     config.update({k: [ os.path.expanduser(el) for el in v ] if 'Config' in k and v is list else v for k, v in config.items()})
@@ -386,17 +385,18 @@ else:
 if "docAlignThreshold" in config:
     DOC_THRESHOLD  = config["docAlignThreshold"]
 else:
-    DOC_THRESHOLD = 0.0
+    DOC_THRESHOLD = 0.1
 
 if "bleuAlignThreshold" in config:
     BLEU_THRESHOLD = config["bleuAlignThreshold"]
 else:
-    BLEU_THRESHOLD = 0.0
+    BLEU_THRESHOLD = 0.2
 #print("DOC_THRESHOLD", DOC_THRESHOLD, "BLEU_THRESHOLD", BLEU_THRESHOLD)
 
 ############ FILTERING AND POST-PROCESSING OPTIONS ############
 
 if "bicleaner" in config:
+  RAWOPTION="bicleaner.scores"
   BICLEANEROPTION=",bicleaner"
   BICLEANER="bicleaner"
   BICLEANER_CONFIG=config["bicleaner"]
@@ -405,6 +405,7 @@ if "bicleaner" in config:
   tokeniserCheck(WORDTOK2)
 
 else:
+  RAWOPTION="segclean"
   BICLEANEROPTION=""
   BICLEANER_SORT="-k3,4"
   BICLEANER="segclean"
@@ -425,14 +426,19 @@ else:
 #========================= MAPPING URLS AND OUTPUT FILES =========================#
 
 def CreateDomainKey2HostMap(hosts):
-    domains={}
+    ret={}
     for host in hosts:
-        domain = tldextract.extract(host).domain
-        if domain not in domains:
-            domains[domain]=[]
-        domains[domain].append(host)
-        #print("subdomain", domain, host)
-    return domains
+        # don't merge blog sites
+        if host.find(".blogspot.") >= 0 or host.find(".wordpress.") >= 0:
+           key = host
+        else:
+           key = tldextract.extract(host).domain
+
+        if key not in ret:
+            ret[key]=[]
+        ret[key].append(host)
+        #print("subdomain", key, host)
+    return ret
 
 def FilterTLD(tlds):
     filtered_tlds={}
@@ -548,7 +554,7 @@ def LinkedHosts(permanent, dir, hosts, linkedHostsAction):
     copyHosts = set(hosts)
     for host in copyHosts:
         if host in otherHosts:
-            if linkedHostsAction == "remove":
+            if linkedHostsAction == "remove" or linkedHostsAction == "postCrawlExclude":
                 hosts.remove(host)
             elif linkedHostsAction == "link":
                 dest = "{permanent}/warc/{host}".format(permanent=permanent, host=host)
@@ -561,6 +567,12 @@ def LinkedHosts(permanent, dir, hosts, linkedHostsAction):
                 sys.stderr.write("Unknown linkedHostsAction:" + linkedHostsAction + "\n")
                 exit()
 
+def PostCrawlExclude(hosts, postCrawlPath):
+    with open(postCrawlPath, "rt") as f:
+        excludeList = f.read().splitlines()
+    for exclude in excludeList:
+        hosts.remove(exclude)
+	
 ###############################################################################################
 if os.path.isfile(permanent + "/hosts.gz"):
     with gzip.open(permanent + "/hosts.gz", 'rt') as f:
@@ -614,11 +626,51 @@ else:
             f.write("%s\n" % host)
 
 #sys.stderr.write("#hosts=" + str(len(hosts)) + "\n")
+# exclude dead domains
+postCrawlPath = "{permanent}/post-crawl-exclude".format(permanent=permanent)
+#print("postCrawlPath", postCrawlPath)
+if os.path.isfile(postCrawlPath):
+    PostCrawlExclude(hosts, postCrawlPath)
 
 if "linkedHosts" in config:
     linkedHostsAction = config["linkedHostsAction"]
+
+    if linkedHostsAction != "postCrawlExclude":
+        # exclude dead domains in other language pairs
+        for dir in config["linkedHosts"]:
+            postCrawlPath = "{dir}/permanent/post-crawl-exclude".format(dir=dir)
+            #print("postCrawlPath", postCrawlPath)
+            if os.path.isfile(postCrawlPath):
+                PostCrawlExclude(hosts, postCrawlPath)
+		
     for dir in config["linkedHosts"]:
         LinkedHosts(permanent, dir, hosts, linkedHostsAction)
+
+    if linkedHostsAction == "postCrawlExclude":
+        # create list of dead domains in post-crawl-exclude file, only for this language pair
+        print("Calc post-crawl exclude")
+        #hostsPath = permanent + "/hosts.gz"
+        #with gzip.open(hostsPath, 'rt') as f:
+        #    hosts = f.read().splitlines()
+        #hosts = set(hosts)
+	#print("hosts", hosts)
+
+        warcPath = permanent + "/warc"
+        domainDirs = os.listdir(warcPath)
+        for domainDir in domainDirs:
+            #print(domainDir)
+            warcFilePath = "{warcPath}/{domainDir}/httrack.warc.xz".format(warcPath=warcPath, domainDir=domainDir)
+            if os.path.isfile(warcFilePath):
+               hosts.remove(domainDir)
+        #print("hosts", hosts)
+
+        postCrawlPath = permanent + "/post-crawl-exclude"
+        with open(postCrawlPath, 'wt') as f:
+            f.write("\n".join(hosts))
+        exit()
+	
+#sys.stderr.write("#hosts to crawl/process=" + str(len(hosts)) + "\n")
+#exit(-1)
 
 domainKey2Hosts = CreateDomainKey2HostMap(hosts)
 #If file domains.gz exists in the permanent directory, the dictionary domainKey2Hosts is filtered to contain only those TLD in this file
@@ -768,7 +820,7 @@ rule train_smt_with_crawl_data:
     output:
         report = "{dir}/smt-dir-crawl/steps/1/REPORTING_report.1.DONE".format(dir=transient)
     run:
-        cmd = "cd {transient}/smt-dir-crawl &&  {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec; sync;"
+        cmd = "cd {transient}/smt-dir-crawl &&  {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec;"
         shell(cmd)
 
 rule train_smt_with_crawl_data_create_config:
@@ -805,7 +857,7 @@ rule train_smt_all:
     output:
         report = "{dir}/smt-dir/steps/1/REPORTING_report.1.DONE".format(dir=transient)
     run:
-        cmd = "cd {transient}/smt-dir && {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec; sync;"
+        cmd = "cd {transient}/smt-dir && {MOSESDIR}/scripts/ems/experiment.perl --continue 1 --exec;"
         shell(cmd)
 
 rule train_smt_all_create_config:
@@ -899,7 +951,6 @@ rule httrack_download:
     shell:
         'echo hostname=$HOSTNAME; '
         #'mkdir -p {permanent}/warc/{wildcards.target} ; '
-        'sync ; '
         'DIRNAME=$(mktemp -d {TMPDIR}/downloaded.{wildcards.target}.XXXXXX); '
         '{PROFILING} nice ionice -c 3 {BITEXTOR}/bitextor-httrack.py --url {params.url} --output-path $DIRNAME {CRAWLTIMELIMIT} {CRAWLPAGELIMIT} {USERAGENT}; '
         '{PROFILING} nice ionice -c 3 {BITEXTOR}/bitextor-webdir2warc.sh $DIRNAME | nice ionice -c 3 xz -c -T 0 > {output}; '
@@ -984,7 +1035,6 @@ rule recompound_preprocess:
         'xzcat {wildcards.dir}/concat.warc.split/*.plain_text.xz | xz > {output.text}; '
         'xzcat {wildcards.dir}/concat.warc.split/*.url.xz | xz > {output.url}; '
         'rm -rf {wildcards.dir}/concat.warc.split; '
-
 
 #================================== DICTIONARY-BASED DOCUMENT ALIGNMENT ==================================#
 rule lettr2idx:
@@ -1301,7 +1351,7 @@ rule elrc:
 
 rule raw:
     input:
-        expand("{dir}/{webdomain}/{aligner}.bicleaner.scores.xz", dir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER)
+        expand("{dir}/{webdomain}/{aligner}.{rawopt}.xz", dir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER, rawopt=RAWOPTION)
     output:
         "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.raw.xz"
     run:
