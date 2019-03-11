@@ -385,12 +385,12 @@ else:
 if "docAlignThreshold" in config:
     DOC_THRESHOLD  = config["docAlignThreshold"]
 else:
-    DOC_THRESHOLD = 0.0
+    DOC_THRESHOLD = 0.1
 
 if "bleuAlignThreshold" in config:
     BLEU_THRESHOLD = config["bleuAlignThreshold"]
 else:
-    BLEU_THRESHOLD = 0.0
+    BLEU_THRESHOLD = 0.2
 #print("DOC_THRESHOLD", DOC_THRESHOLD, "BLEU_THRESHOLD", BLEU_THRESHOLD)
 
 ############ FILTERING AND POST-PROCESSING OPTIONS ############
@@ -625,7 +625,7 @@ else:
         for host in hosts:
             f.write("%s\n" % host)
 
-sys.stderr.write("#hosts=" + str(len(hosts)) + "\n")
+#sys.stderr.write("#hosts=" + str(len(hosts)) + "\n")
 
 # exclude dead domains
 postCrawlPath = "{permanent}/post-crawl-exclude".format(permanent=permanent)
@@ -640,9 +640,9 @@ if "linkedHosts" in config:
         # exclude dead domains in other language pairs
         for dir in config["linkedHosts"]:
             postCrawlPath = "{dir}/permanent/post-crawl-exclude".format(dir=dir)
+            #print("postCrawlPath", postCrawlPath)
             if os.path.isfile(postCrawlPath):
-                print("postCrawlPath", postCrawlPath)
-	        PostCrawlExclude(hosts, postCrawlPath)
+                PostCrawlExclude(hosts, postCrawlPath)
 		
     for dir in config["linkedHosts"]:
         LinkedHosts(permanent, dir, hosts, linkedHostsAction)
@@ -670,7 +670,7 @@ if "linkedHosts" in config:
             f.write("\n".join(hosts))
         exit()
 	
-sys.stderr.write("#hosts to crawl/process=" + str(len(hosts)) + "\n")
+#sys.stderr.write("#hosts to crawl/process=" + str(len(hosts)) + "\n")
 #exit(-1)
 
 domainKey2Hosts = CreateDomainKey2HostMap(hosts)
