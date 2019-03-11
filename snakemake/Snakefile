@@ -967,6 +967,15 @@ def input_files(wildcards):
 rule recompound_preprocess:
     input:
         input_files
+    output:
+        deboil='{dir}/deboilerplate_html.xz',
+        encoding='{dir}/encoding.xz',
+        lang='{dir}/lang.xz',
+        mime='{dir}/mime.xz',
+        html='{dir}/normalized_html.xz',
+        text='{dir}/plain_text.xz',
+        url='{dir}/url.xz'
+    shell:
         'xzcat {wildcards.dir}/concat.warc.split/*.deboilerplate_html.xz | xz > {output.deboil}; '
         'xzcat {wildcards.dir}/concat.warc.split/*.encoding.xz | xz > {output.encoding}; '
         'xzcat {wildcards.dir}/concat.warc.split/*.lang.xz | xz > {output.lang}; '
@@ -975,6 +984,7 @@ rule recompound_preprocess:
         'xzcat {wildcards.dir}/concat.warc.split/*.plain_text.xz | xz > {output.text}; '
         'xzcat {wildcards.dir}/concat.warc.split/*.url.xz | xz > {output.url}; '
         'rm -rf {wildcards.dir}/concat.warc.split; '
+
 
 #================================== DICTIONARY-BASED DOCUMENT ALIGNMENT ==================================#
 rule lettr2idx:
