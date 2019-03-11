@@ -385,7 +385,7 @@ for record in f:
             doc2 = extractPath
             matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=otherDocId, doc2Id=docId)
 
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.malign/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
         #print("cmd", cmd)
         os.system(cmd)
 
