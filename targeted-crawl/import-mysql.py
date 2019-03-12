@@ -20,9 +20,14 @@ import lzma
 import urllib
 import subprocess
 import pycld2 as cld2
+import string
 from lxml.html.clean import Cleaner
 from lxml import etree
 from bs4 import BeautifulSoup
+
+
+sys.path.append("..")
+from external_processor import ExternalTextProcessor
 
 ######################################################################################
 def guess_lang_from_data2(data):
@@ -49,6 +54,55 @@ def strip_scheme(url):
     scheme = "%s://" % parsed.scheme
     return parsed.geturl().replace(scheme, '', 1)
 ######################################################################################
+def filter_digits_and_punctuation(original_text):
+    text_split = original_text.split()
+    if len(text_split) == 1 and sum([1 for m in text_split[0] if m in string.punctuation + string.digits]) > len(
+            text_split[0]) // 2:
+        return False
+
+    return True
+
+def split_sentences(original_text, sentence_splitter_cmd, prune_type, prune_threshold):
+    print("original_text", len(original_text))
+    proc = ExternalTextProcessor(sentence_splitter_cmd.split())
+
+    tmp1 = original_text.replace("\n\n", "\n")
+    #print("tmp1", len(tmp1))
+
+    tmp2 = proc.process(tmp1)
+    #print("tmp2", len(tmp2))
+
+    tmp3 = html.unescape(tmp2)
+    #print("tmp3", len(tmp3))
+
+    tmp4 = [n for n in tmp3.split("\n") if filter_digits_and_punctuation(n)]
+    #print("tmp4", len(tmp4))
+
+    tmp5 = []
+    count = 0
+    for extracted_line in tmp4:
+        extracted_line = extracted_line.strip()
+
+        if not extracted_line:
+            # print("empty line")
+            continue
+
+        if prune_type == "chars":
+            if len(extracted_line) > prune_threshold:
+                continue
+        elif prune_type == "words":
+            if len(extracted_line.split()) > prune_threshold:
+                continue
+
+        tmp5.append(extracted_line)
+
+        count += 1
+
+    print("tmp5", len(tmp5))
+
+    return tmp5
+
+######################################################################################
 
 print("Starting")
 
@@ -58,6 +112,10 @@ oparser.add_argument("--alcazar", action="store_true", default=False, help="Use 
 oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', required=True)
 oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', required=True)
 oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
+oparser.add_argument("--prune", dest="prune_threshold", type=int,
+                    default=80, help="Prune sentences longer than n (words/characters)", required=False)
+oparser.add_argument("--prune_type", dest="prune_type", choices={"words", "chars"},
+                    default="words", help="Prune sentences either by words or charaters", required=False)
 options = oparser.parse_args()
 
 languages=[]
@@ -313,28 +371,9 @@ for record in f:
     with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
         textFile.write(plaintext)
 
-    # split
-    inLines = plaintext.split("\n")
-    if len(inLines[-1]) == 0:
-        del inLines[-1]
-
-    extractedLines = []
-    for inLine in inLines:
-        #print("inLine", inLine)
-        #inLine += "\n"
-
-        frSplitProc = subprocess.Popen(
-            ["/home/hieu/workspace/github/mosesdecoder/scripts/ems/support/split-sentences.perl",
-             "-b",
-             "-l", options.l1],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        cout, cerr = frSplitProc.communicate(input=inLine.encode('utf-8'))
-
-        splittedLines = cout.decode("utf-8")
-        splittedLines = splittedLines[0:-1].split("\n")
-        #print("splittedLines", inLine, splittedLines)
-        extractedLines += splittedLines
+    #print("plaintext", len(plaintext))
+    splitterCmd = "../preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(lang1=options.l1)
+    extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
     # write splitted file
     extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
