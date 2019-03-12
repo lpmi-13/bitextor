@@ -63,7 +63,7 @@ def filter_digits_and_punctuation(original_text):
     return True
 
 def split_sentences(original_text, sentence_splitter_cmd, prune_type, prune_threshold):
-    print("original_text", len(original_text))
+    #print("original_text", len(original_text))
     proc = ExternalTextProcessor(sentence_splitter_cmd.split())
 
     tmp1 = original_text.replace("\n\n", "\n")
@@ -97,8 +97,7 @@ def split_sentences(original_text, sentence_splitter_cmd, prune_type, prune_thre
         tmp5.append(extracted_line)
 
         count += 1
-
-    print("tmp5", len(tmp5))
+    #print("tmp5", len(tmp5))
 
     return tmp5
 
@@ -173,8 +172,8 @@ for record in f:
     cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
 
     cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', html_text, flags=re.IGNORECASE))
-    document = html5lib.parse(ftfy.fix_text(cleanhtml), treebuilder="lxml", namespaceHTMLElements=False)
-    tree = etree.tostring(document)
+    document = html5lib.parse(ftfy.fix_text(cleanhtml, fix_entities=False, fix_character_width=False), treebuilder="lxml", namespaceHTMLElements=False)
+    tree = etree.tostring(document, encoding="utf-8")
     cleantree = tree.decode("utf8").replace("&#160;", " ")
     cleantree = cleantree.replace("\t", " ")
 
